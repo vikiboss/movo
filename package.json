@@ -8,7 +8,9 @@
   "scripts": {
     "dev": "tsc -w",
     "doc": "typedoc --options typedoc.json",
-    "build": "tsc"
+    "build": "tsc",
+    "clean": "rm -r lib",
+    "release": "npm run clean && npm run build && npm publish"
   },
   "engines": {
     "node": ">= v14"
