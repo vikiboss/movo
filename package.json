@@ -1,0 +1,38 @@
+{
+  "name": "movo",
+  "version": "0.0.1",
+  "upday": "2023/1/24",
+  "description": "modified from oicq.",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "dev": "tsc -w",
+    "doc": "typedoc --options typedoc.json",
+    "build": "tsc"
+  },
+  "engines": {
+    "node": ">= v14"
+  },
+  "author": "Viki <hi@viki.moe> (https://github.com/vikiboss)",
+  "license": "MPL-2.0",
+  "dependencies": {
+    "axios": "^1.2.3",
+    "log4js": "^6.7.1",
+    "long": "^4.0.0",
+    "pngjs": "^6.0.0",
+    "probe-image-size": "^7.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^16.18.11",
+    "@types/pngjs": "^6.0.1",
+    "@types/probe-image-size": "^7.2.0",
+    "@types/ws": "^8.5.4",
+    "protobufjs": "^6.11.3",
+    "typedoc": "^0.23.24",
+    "typescript": "^4.9.4",
+    "ws": "^8.12.0"
+  },
+  "files": [
+    "lib"
+  ]
+}
