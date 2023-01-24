@@ -1,6 +1,6 @@
 {
   "name": "movo",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "upday": "2023/1/24",
   "description": "modified from oicq.",
   "main": "lib/index.js",
