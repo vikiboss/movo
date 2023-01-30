@@ -10,7 +10,7 @@ import { FileElem } from './message'
 
 type Client = import('./client').Client
 
-/** (群文件/目录)共通属性 */
+/** (群文件/目录) 共通属性 */
 export interface GfsBaseStat {
   /** 文件或目录的id (目录以/开头) */
   fid: string
@@ -19,6 +19,7 @@ export interface GfsBaseStat {
   name: string
   user_id: number
   create_time: number
+  modify_time: number
   is_dir: boolean
 }
 
@@ -448,6 +449,7 @@ function genGfsDirStat(file: pb.Proto): GfsDirStat {
     pid: String(file[2]),
     name: String(file[3]),
     create_time: file[4],
+    modify_time: file[5],
     user_id: file[6],
     file_count: file[8] || 0,
     is_dir: true
@@ -464,6 +466,7 @@ function genGfsFileStat(file: pb.Proto): GfsFileStat {
     md5: file[12].toHex(),
     sha1: file[10].toHex(),
     create_time: file[6],
+    modify_time: file[8],
     duration: file[7],
     user_id: file[15],
     download_times: file[9],
