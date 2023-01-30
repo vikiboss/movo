@@ -1,27 +1,21 @@
-import { randomBytes } from 'crypto'
+/* eslint-disable no-var */
+/* eslint-disable no-use-before-define */
 import axios from 'axios'
+import { randomBytes } from 'node:crypto'
+
+import { timestamp, code2uin, PB_CONTENT, NOOP, lock, hide } from './common'
 import { pb, jce } from './core'
 import { ErrorCode, drop } from './errors'
-import { timestamp, code2uin, PB_CONTENT, NOOP, lock, hide } from './common'
-import { Contactable } from './internal'
-import {
-  Sendable,
-  GroupMessage,
-  Image,
-  ImageElem,
-  buildMusic,
-  MusicPlatform,
-  Anonymous,
-  parseGroupMessageId,
-  Quotable,
-  Converter
-} from './message'
 import { Gfs } from './gfs'
-import { MessageRet } from './events'
-import { GroupInfo, MemberInfo } from './entities'
-import { buildShare, ShareConfig, ShareContent } from "./message/share"
+import { Contactable } from './internal'
+import { GroupMessage, Image, buildMusic, parseGroupMessageId } from './message'
+import { buildShare } from './message/share'
 
-type Client = import('./client').Client
+import type { Client } from './client'
+import type { GroupInfo, MemberInfo } from './entities'
+import type { MessageRet } from './events'
+import type { Sendable, ImageElem, MusicPlatform, Anonymous, Quotable, Converter } from './message'
+import type { ShareConfig, ShareContent } from './message/share'
 
 const fetchmap = new Map<string, Promise<Map<number, MemberInfo>>>()
 const weakmap = new WeakMap<GroupInfo, Group>()
@@ -48,14 +42,17 @@ export class Discuss extends Contactable {
   static as(this: Client, gid: number) {
     return new Discuss(this, Number(gid))
   }
+
   /** `this.gid`的别名 */
   get group_id() {
     return this.gid
   }
+
   protected constructor(c: Client, public readonly gid: number) {
     super(c)
     lock(this, 'gid')
   }
+
   /** 发送一条消息 */
   async sendMsg(content: Sendable): Promise<MessageRet> {
     const { rich, brief } = await this._preprocess(content)
@@ -73,6 +70,7 @@ export class Discuss extends Contactable {
       this.c.logger.error(`failed to send: [Discuss(${this.gid})] ${rsp[2]}(${rsp[1]})`)
       drop(rsp[1], rsp[2])
     }
+    this.c.stat.sent_msg_cnt++
     this.c.logger.info(`succeed to send: [Discuss(${this.gid})] ` + brief)
     return {
       message_id: '',
@@ -105,28 +103,32 @@ export class Group extends Discuss {
 
   /** 群资料 */
   get info() {
-    if (!this._info || timestamp() - this._info?.update_time! >= 900) this.renew().catch(NOOP)
+    if (!this._info || timestamp() - this._info?.update_time >= 900) this.renew().catch(NOOP)
     return this._info
   }
 
   get name() {
     return this.info?.group_name
   }
+
   /** 我是否是群主 */
   get is_owner() {
     return this.info?.owner_id === this.c.uin
   }
+
   /** 我是否是管理 */
   get is_admin() {
     return this.is_owner || !!this.info?.admin_flag
   }
+
   /** 是否全员禁言 */
   get all_muted() {
-    return this.info?.shutup_time_whole! > timestamp()
+    return (this.info?.shutup_time_whole ?? 0) > timestamp()
   }
+
   /** 我的禁言剩余时间 */
   get mute_left() {
-    const t = this.info?.shutup_time_me! - timestamp()
+    const t = (this.info?.shutup_time_me ?? 0) - timestamp()
     return t > 0 ? t : 0
   }
 
@@ -206,7 +208,7 @@ export class Group extends Discuss {
         const nested = jce.decodeWrapper(payload)
         next = nested[4]
         if (!this.c.gml.has(this.gid)) this.c.gml.set(this.gid, new Map())
-        for (let v of nested[3]) {
+        for (const v of nested[3]) {
           let info: MemberInfo = {
             group_id: this.gid,
             user_id: v[0],
@@ -293,7 +295,7 @@ export class Group extends Discuss {
     })
     const e = `internal.${this.gid}.${rand}`
     let message_id = ''
-    this.c.once(e, id => (message_id = id))
+    this.c.once(e, (id) => (message_id = id))
     try {
       const payload = await this.c.sendUni('MessageSvc.PbSendMsg', body)
       const rsp = pb.decode(payload)
@@ -312,9 +314,10 @@ export class Group extends Discuss {
         message_id = await new Promise((resolve, reject) => {
           const timeout = setTimeout(() => {
             this.c.removeAllListeners(e)
+            // eslint-disable-next-line prefer-promise-reject-errors
             reject()
           }, time)
-          this.c.once(e, id => {
+          this.c.once(e, (id) => {
             clearTimeout(timeout)
             resolve(id)
           })
@@ -323,6 +326,7 @@ export class Group extends Discuss {
     } catch {
       message_id = await this._sendMsgByFrag(converter)
     }
+    this.c.stat.sent_msg_cnt++
     this.c.logger.info(`succeed to send: [Group(${this.gid})] ` + converter.brief)
     {
       const { seq, rand, time } = parseGroupMessageId(message_id)
@@ -337,7 +341,7 @@ export class Group extends Discuss {
     let n = 0
     const rand = randomBytes(4).readUInt32BE()
     const div = randomBytes(2).readUInt16BE()
-    for (let frag of fragments) {
+    for (const frag of fragments) {
       const body = pb.encode({
         1: { 2: { 1: this.gid } },
         2: {
@@ -357,9 +361,10 @@ export class Group extends Discuss {
       return await new Promise((resolve: (id: string) => void, reject) => {
         const timeout = setTimeout(() => {
           this.c.removeAllListeners(e)
+          // eslint-disable-next-line prefer-promise-reject-errors
           reject()
         }, 5000)
-        this.c.once(e, id => {
+        this.c.once(e, (id) => {
           clearTimeout(timeout)
           resolve(id)
         })
@@ -374,10 +379,10 @@ export class Group extends Discuss {
     else if (typeof param === 'string') var { seq, rand, pktnum } = parseGroupMessageId(param)
     else var seq = param
     if (pktnum > 1) {
-      var msg: any = [],
-        pb_msg = [],
-        n = pktnum,
-        i = 0
+      var msg: any = []
+      const pb_msg = []
+      let n = pktnum
+      let i = 0
       while (n-- > 0) {
         msg.push(
           pb.encode({
@@ -422,14 +427,17 @@ export class Group extends Discuss {
   setName(name: string) {
     return this._setting({ 3: String(name) })
   }
+
   /** 全员禁言 */
   muteAll(yes = true) {
     return this._setting({ 17: yes ? 0xffffffff : 0 })
   }
+
   /** 发送简易群公告 */
   announce(content: string) {
     return this._setting({ 4: String(content) })
   }
+
   private async _setting(obj: { [tag: number]: any }) {
     const body = pb.encode({
       1: this.gid,
@@ -464,7 +472,7 @@ export class Group extends Discuss {
   async muteAnony(flag: string, duration = 1800) {
     const [nick, id] = flag.split('@')
     const Cookie = this.c.cookies['qqweb.qq.com']
-    let body = new URLSearchParams({
+    const body = new URLSearchParams({
       anony_id: id,
       group_code: String(this.gid),
       seconds: String(duration),
@@ -548,8 +556,8 @@ export class Group extends Discuss {
       6: 0
     })
     const payload = await this.c.sendUni('MessageSvc.PbGetGroupMsg', body)
-    const obj = pb.decode(payload),
-      messages: GroupMessage[] = []
+    const obj = pb.decode(payload)
+    const messages: GroupMessage[] = []
     if (obj[1] > 0 || !obj[6]) return []
     !Array.isArray(obj[6]) && (obj[6] = [obj[6]])
     for (const proto of obj[6]) {
@@ -606,18 +614,23 @@ export class Group extends Discuss {
   setAdmin(uid: number, yes = true) {
     return this.pickMember(uid).setAdmin(yes)
   }
+
   setTitle(uid: number, title = '', duration = -1) {
     return this.pickMember(uid).setTitle(title, duration)
   }
+
   setCard(uid: number, card = '') {
     return this.pickMember(uid).setCard(card)
   }
+
   kickMember(uid: number, block = false) {
     return this.pickMember(uid).kick(block)
   }
+
   muteMember(uid: number, duration = 600) {
     return this.pickMember(uid).mute(duration)
   }
+
   pokeMember(uid: number) {
     return this.pickMember(uid).poke()
   }

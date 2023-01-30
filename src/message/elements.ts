@@ -1,3 +1,7 @@
+/* eslint-disable no-use-before-define */
+import type { OutgoingHttpHeaders } from 'node:http'
+import type { Readable } from 'node:stream'
+
 /** TEXT (此元素可使用字符串代替) */
 export interface TextElem {
   type: 'text'
@@ -46,12 +50,12 @@ export interface ImageElem {
    * @type {Buffer} image buffer
    * @type {Readable} a readable stream of image
    */
-  file: string | Buffer | import('stream').Readable
+  file: string | Buffer | Readable
   /** 网络图片是否使用缓存 */
   cache?: boolean
   /** 流的超时时间，默认60(秒) */
   timeout?: number
-  headers?: import('http').OutgoingHttpHeaders
+  headers?: OutgoingHttpHeaders
   /** 这个参数只有在接收时有用 */
   url?: string
   /** 是否作为表情发送 */
@@ -283,7 +287,7 @@ export const segment = {
     file: ImageElem['file'],
     cache?: boolean,
     timeout?: number,
-    headers?: import('http').OutgoingHttpHeaders
+    headers?: OutgoingHttpHeaders
   ): ImageElem {
     return {
       type: 'image',
@@ -298,7 +302,7 @@ export const segment = {
     file: ImageElem['file'],
     cache?: boolean,
     timeout?: number,
-    headers?: import('http').OutgoingHttpHeaders
+    headers?: OutgoingHttpHeaders
   ): FlashElem {
     return {
       type: 'flash',
@@ -374,7 +378,7 @@ export const segment = {
     const elems: MessageElem[] = []
     const res = str.matchAll(/\[CQ:[^\]]+\]/g)
     let prev_index = 0
-    for (let v of res) {
+    for (const v of res) {
       const text = str.slice(prev_index, v.index).replace(/&#91;|&#93;|&amp;/g, unescapeCQ)
       if (text) elems.push({ type: 'text', text })
       const element = v[0]
@@ -407,12 +411,12 @@ function unescapeCQInside(s: string) {
 function qs(s: string, sep = ',', equal = '=') {
   const ret: any = {}
   const split = s.split(sep)
-  for (let v of split) {
+  for (const v of split) {
     const i = v.indexOf(equal)
     if (i === -1) continue
     ret[v.substring(0, i)] = v.substr(i + 1).replace(/&#44;|&#91;|&#93;|&amp;/g, unescapeCQInside)
   }
-  for (let k in ret) {
+  for (const k in ret) {
     try {
       if (k !== 'text') ret[k] = JSON.parse(ret[k])
     } catch {}

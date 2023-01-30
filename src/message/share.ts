@@ -1,20 +1,20 @@
-/**所有可选参数默认为QQ浏览器 */
+/** 所有可选参数默认为QQ浏览器 */
 export interface ShareConfig {
   appid?: number
   // style?: number,
   appname?: string
-  /**app签名hash */
+  /** app签名hash */
   appsign?: string
 }
 
 export interface ShareContent {
   title: string
   summary?: string
-  /**从消息列表中看到的文字,默认为 "[分享]"+title */
+  /** 从消息列表中看到的文字,默认为 "[分享]"+title */
   abstract?: string
-  /**预览图网址, 默认为QQ浏览器图标,似乎对域名有限制 */
+  /** 预览图网址, 默认为QQ浏览器图标,似乎对域名有限制 */
   preview?: string
-  /**跳转链接, 没有则发不出 */
+  /** 跳转链接, 没有则发不出 */
   jumpUrl: string
   musicUrl?: string
 }

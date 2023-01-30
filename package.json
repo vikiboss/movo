@@ -9,6 +9,8 @@
     "dev": "tsc -w",
     "doc": "typedoc --options typedoc.json",
     "build": "tsc",
+    "lint": "eslint --ext .js,.ts .",
+    "lint:fix": "eslint --fix --ext .js,.ts .",
     "clean": "rm -r lib",
     "release": "npm run clean && npm run build && npm publish"
   },
@@ -29,6 +31,12 @@
     "@types/node": "^16.18.11",
     "@types/pngjs": "^6.0.1",
     "@types/probe-image-size": "^7.2.0",
+    "@vikiboss/prettier-config": "^0.2.2",
+    "eslint": "^8.33.0",
+    "eslint-config-prettier": "^8.6.0",
+    "eslint-config-viki-ts": "^0.1.1",
+    "eslint-plugin-prettier": "^4.2.1",
+    "prettier": "^2.8.3",
     "protobufjs": "^6.11.3",
     "typedoc": "^0.23.24",
     "typescript": "^4.9.4"

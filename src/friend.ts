@@ -1,39 +1,24 @@
-import { randomBytes } from 'crypto'
-import { Readable } from 'stream'
-import fs from 'fs'
-import path from 'path'
+/* eslint-disable no-var */
+import { randomBytes } from 'node:crypto'
+import fs from 'node:fs'
+import path from 'node:path'
+import { Readable } from 'node:stream'
+
+import { PB_CONTENT, code2uin, timestamp, lock, hide, fileHash, md5, sha } from './common'
 import { pb, jce } from './core'
 import { ErrorCode, drop } from './errors'
-import {
-  Gender,
-  PB_CONTENT,
-  code2uin,
-  timestamp,
-  lock,
-  hide,
-  fileHash,
-  md5,
-  sha,
-  log
-} from './common'
-import {
-  Sendable,
-  PrivateMessage,
-  buildMusic,
-  MusicPlatform,
-  Quotable,
-  rand2uuid,
-  genDmMessageId,
-  parseDmMessageId,
-  FileElem
-} from './message'
 import { buildSyncCookie, Contactable, highwayHttpUpload, CmdID } from './internal'
-import { MessageRet } from './events'
-import { FriendInfo } from './entities'
-import { buildShare, ShareConfig, ShareContent } from './message/share'
+import { PrivateMessage, buildMusic, rand2uuid, genDmMessageId, parseDmMessageId } from './message'
+import { buildShare } from './message/share'
 
-type Client = import('./client').Client
+import type { Client } from './client'
+import type { Gender } from './common'
+import type { FriendInfo } from './entities'
+import type { MessageRet } from './events'
+import type { Sendable, MusicPlatform, Quotable, FileElem } from './message'
+import type { ShareConfig, ShareContent } from './message/share'
 
+// eslint-disable-next-line no-use-before-define
 const weakmap = new WeakMap<FriendInfo, Friend>()
 
 export interface User {
@@ -92,7 +77,8 @@ export class User extends Contactable {
     const body = jce.encodeWrapper({ req }, 'KQQ.ProfileService.ProfileServantObj', 'GetSimpleInfo')
     const payload = await this.c.sendUni('ProfileService.GetSimpleInfo', body)
     const nested = jce.decodeWrapper(payload)
-    for (let v of nested) {
+    // eslint-disable-next-line no-unreachable-loop
+    for (const v of nested) {
       return {
         user_id: v[1] as number,
         nickname: (v[5] || '') as string,
@@ -114,8 +100,8 @@ export class User extends Contactable {
       4: Number(cnt)
     })
     const payload = await this.c.sendUni('MessageSvc.PbGetOneDayRoamMsg', body)
-    const obj = pb.decode(payload),
-      messages: PrivateMessage[] = []
+    const obj = pb.decode(payload)
+    const messages: PrivateMessage[] = []
     if (obj[1] > 0 || !obj[6]) return messages
     !Array.isArray(obj[6]) && (obj[6] = [obj[6]])
     for (const proto of obj[6]) {
@@ -205,6 +191,7 @@ export class User extends Contactable {
       this.c.logger.error(`failed to send: [Private: ${this.uid}] ${rsp[2]}(${rsp[1]})`)
       drop(rsp[1], rsp[2])
     }
+    this.c.stat.sent_msg_cnt++
     this.c.logger.info(`succeed to send: [Private(${this.uid})] ` + brief)
     const time = rsp[3]
     const message_id = genDmMessageId(this.uid, seq, rand, rsp[3], 1)
@@ -326,7 +313,6 @@ export class User extends Contactable {
     return (await this.getFileInfo(fid)).url
   }
 }
-
 /** 好友(继承User) */
 export class Friend extends User {
   static as(this: Client, uid: number, strict = false) {
@@ -347,17 +333,25 @@ export class Friend extends User {
   get nickname() {
     return this.info?.nickname
   }
+
   get sex() {
     return this.info?.sex
   }
+
   get remark() {
     return this.info?.remark
   }
+
   get class_id() {
     return this.info?.class_id
   }
+
   get class_name() {
-    return this.c.classes.get(this.info?.class_id!)
+    if (this.info?.class_id) {
+      return this.c.classes.get(this.info?.class_id)
+    } else {
+      return undefined
+    }
   }
 
   protected constructor(c: Client, uid: number, private _info?: FriendInfo) {
@@ -391,7 +385,8 @@ export class Friend extends User {
   /** 设置分组(注意：如果分组id不存在也会成功) */
   async setClass(id: number) {
     const buf = Buffer.alloc(10)
-    ;(buf[0] = 1), (buf[2] = 5)
+    buf[0] = 1
+    buf[2] = 5
     buf.writeUInt32BE(this.uid, 3)
     buf[7] = Number(id)
     const MovGroupMemReq = jce.encodeStruct([this.c.uin, 0, buf])
@@ -484,7 +479,8 @@ export class Friend extends User {
     if (file instanceof Uint8Array) {
       if (!Buffer.isBuffer(file)) file = Buffer.from(file)
       filesize = file.length
-      ;(filemd5 = md5(file)), (filesha = sha(file))
+      filemd5 = md5(file)
+      filesha = sha(file)
       filename = filename ? String(filename) : 'file' + filemd5.toString('hex')
       filestream = Readable.from(file, { objectMode: false, highWaterMark: 524288 })
     } else {

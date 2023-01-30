@@ -1,14 +1,14 @@
-import fs from 'fs'
-import path from 'path'
-import querystring from 'querystring'
+/* eslint-disable n/handle-callback-err */
 import axios from 'axios'
-import { Readable } from 'stream'
-import { randomBytes } from 'crypto'
-import { exec } from 'child_process'
+import { exec } from 'node:child_process'
+import { randomBytes } from 'node:crypto'
+import fs from 'node:fs'
+import path from 'node:path'
+import querystring from 'node:querystring'
+import { Readable } from 'node:stream'
 import silkSDK from 'silk-sdk'
 
-import { tea, pb, ApiRejection } from '../core'
-import { ErrorCode, drop } from '../errors'
+import { CmdID, highwayUpload } from './highway'
 import {
   escapeXml,
   md5,
@@ -23,27 +23,23 @@ import {
   int32ip2str,
   lock,
   pipeline,
-  DownloadTransform,
-  log
+  DownloadTransform
 } from '../common'
-import {
+import { tea, pb, ApiRejection } from '../core'
+import { ErrorCode, drop } from '../errors'
+import { PrivateMessage, ForwardMessage, Image, Converter, rand2uuid } from '../message'
+
+import type { Client } from '../client'
+import type {
   Sendable,
-  PrivateMessage,
   MessageElem,
-  ForwardMessage,
   Forwardable,
   Quotable,
-  Image,
   ImageElem,
   VideoElem,
   PttElem,
-  Converter,
-  XmlElem,
-  rand2uuid
+  XmlElem
 } from '../message'
-import { CmdID, highwayUpload } from './highway'
-
-type Client = import('../client').Client
 
 /** 所有用户和群的基类 */
 export abstract class Contactable {
@@ -86,8 +82,8 @@ export abstract class Contactable {
         8: 9,
         9: 0,
         10: 0,
-        11: 0, //retry
-        12: 1, //bu
+        11: 0, // retry
+        12: 1, // bu
         13: img.origin ? 1 : 0,
         14: img.width,
         15: img.height,
@@ -118,7 +114,7 @@ export abstract class Contactable {
         6: img.md5.toString('hex'),
         7: 5,
         8: 9,
-        9: 1, //bu
+        9: 1, // bu
         10: img.width,
         11: img.height,
         12: img.type,
@@ -241,7 +237,7 @@ export abstract class Contactable {
         `${this.c.config.ffmpeg_path || 'ffmpeg'} -y -i "${file}" -f image2 -frames:v 1 "${thumb}"`,
         (error, stdout, stderr) => {
           this.c.logger.debug('ffmpeg output: ' + stdout + stderr)
-          fs.stat(thumb, err => {
+          fs.stat(thumb, (err) => {
             if (err)
               reject(new ApiRejection(ErrorCode.FFmpegVideoThumbError, 'ffmpeg获取视频图像帧失败'))
             else resolve(undefined)
@@ -249,14 +245,14 @@ export abstract class Contactable {
         }
       )
     })
-    const [width, height, seconds] = (await new Promise<[number, number, number]>(resolve => {
+    const [width, height, seconds] = (await new Promise<[number, number, number]>((resolve) => {
       exec(
         `${this.c.config.ffprobe_path || 'ffprobe'} -i "${file}" -show_streams`,
         (error, stdout, stderr) => {
           const lines = (stdout || stderr || '').split('\n')
-          let width = 1280,
-            height = 720,
-            seconds = 120
+          let width = 1280
+          let height = 720
+          let seconds = 120
           for (const line of lines) {
             if (line.startsWith('width=')) {
               width = parseInt(line.slice(6))
@@ -373,10 +369,10 @@ export abstract class Contactable {
     const payload = await this.c.sendUni('PttStore.GroupPttUp', body)
     const rsp = pb.decode(payload)[5]
     rsp[2] && drop(rsp[2], rsp[3])
-    const ip = rsp[5]?.[0] || rsp[5],
-      port = rsp[6]?.[0] || rsp[6]
-    const ukey = rsp[7].toHex(),
-      filekey = rsp[11].toHex()
+    const ip = rsp[5]?.[0] || rsp[5]
+    const port = rsp[6]?.[0] || rsp[6]
+    const ukey = rsp[7].toHex()
+    const filekey = rsp[11].toHex()
     const params = {
       ver: 4679,
       ukey,
@@ -439,7 +435,7 @@ export abstract class Contactable {
       3: 9,
       4: [
         {
-          //1: 3,
+          // 1: 3,
           2: this.target,
           4: compressed,
           5: 2,
@@ -447,8 +443,8 @@ export abstract class Contactable {
         }
       ]
     })
-    const ip = rsp[4]?.[0] || rsp[4],
-      port = rsp[5]?.[0] || rsp[5]
+    const ip = rsp[4]?.[0] || rsp[4]
+    const port = rsp[5]?.[0] || rsp[5]
     await highwayUpload.call(
       this.c,
       Readable.from(Buffer.from(buf), { objectMode: false }),
@@ -477,28 +473,28 @@ export abstract class Contactable {
     let imgs: Image[] = []
     let preview = ''
     let cnt = 0
-    let MultiMsg = []
+    const MultiMsg = []
     let brief
     for (const fake of msglist) {
-      if (typeof fake.message == 'object' && !Array.isArray(fake.message)) {
-        if (fake.message.type == 'xml' && fake.message.data) {
-          let data = fake.message.data
-          let brief_reg = /brief\=\"(.*?)\"/gm.exec(data)
+      if (typeof fake.message === 'object' && !Array.isArray(fake.message)) {
+        if (fake.message.type === 'xml' && fake.message.data) {
+          const data = fake.message.data
+          const brief_reg = /brief="(.*?)"/gm.exec(data)
 
           if (brief_reg && brief_reg.length > 0) {
             brief = brief_reg[1]
           }
 
-          let resid_reg = /m_resid\=\"(.*?)\"/gm.exec(data)
-          let fileName_reg = /m_fileName\=\"(.*?)\"/gm.exec(data)
+          const resid_reg = /m_resid="(.*?)"/gm.exec(data)
+          const fileName_reg = /m_fileName="(.*?)"/gm.exec(data)
           if (resid_reg && resid_reg.length > 1 && fileName_reg && fileName_reg.length > 1) {
             const buf = await this._downloadMultiMsg(String(resid_reg[1]), 2)
             let a = pb.decode(buf)[2]
             if (!Array.isArray(a)) {
               a = [a]
             }
-            for (let b of a) {
-              let m_fileName = b[1].toString()
+            for (const b of a) {
+              const m_fileName = b[1].toString()
               if (m_fileName === 'MultiMsg') {
                 MultiMsg.push({
                   1: fileName_reg[1],
@@ -509,8 +505,8 @@ export abstract class Contactable {
               }
             }
           }
-        } else if (fake.message.type == 'json' && fake.message.data) {
-          let json = fake.message.data
+        } else if (fake.message.type === 'json' && fake.message.data) {
+          const json = fake.message.data
           if (json) {
             brief = json.prompt
           }
@@ -593,12 +589,12 @@ export abstract class Contactable {
   }
 
   /**  下载并解析合并转发  */
-  async getForwardMsg(resid: string, fileName: string = 'MultiMsg') {
+  async getForwardMsg(resid: string, fileName = 'MultiMsg') {
     const ret = []
     const buf = await this._downloadMultiMsg(String(resid), 2)
     let a = pb.decode(buf)[2]
     if (!Array.isArray(a)) a = [a]
-    for (let b of a) {
+    for (const b of a) {
       const m_fileName = b[1].toString()
       if (m_fileName === fileName) {
         a = b
@@ -608,7 +604,7 @@ export abstract class Contactable {
     if (Array.isArray(a)) a = a[0]
     a = a[2][1]
     if (!Array.isArray(a)) a = [a]
-    for (let proto of a) {
+    for (const proto of a) {
       try {
         ret.push(new ForwardMessage(proto))
       } catch {}
@@ -636,7 +632,7 @@ export abstract class Contactable {
     const rsp = pb.decode(payload)[3]
     const ip = int32ip2str(rsp[4]?.[0] || rsp[4])
     const port = rsp[5]?.[0] || rsp[5]
-    let url = port == 443 ? 'https://ssl.htdata.qq.com' : `http://${ip}:${port}`
+    let url = port === 443 ? 'https://ssl.htdata.qq.com' : `http://${ip}:${port}`
     url += rsp[2]
     let { data, headers } = await axios.get(url, {
       headers: {
@@ -740,6 +736,7 @@ function audioTrans(file: string, ffmpeg = 'ffmpeg'): Promise<Buffer> {
     const tmpfile = path.join(TMP_DIR, uuid())
     exec(
       `${ffmpeg} -i "${file}" -f s16le -ac 1 -ar 24000 "${tmpfile}"`,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       async (error, stdout, stderr) => {
         try {
           resolve(silkSDK.encode(tmpfile, { tencent: true }))

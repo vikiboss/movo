@@ -1,8 +1,12 @@
-import * as qs from 'querystring'
+import * as qs from 'node:querystring'
+
+import { parse } from './parser'
+import { lock, parseFunString } from '../common'
 import { pb } from '../core'
-import { lock, parseFunString, GroupRole, Gender, log } from '../common'
-import { Parser, parse } from './parser'
-import { Quotable, Forwardable, MessageElem, FileElem } from './elements'
+
+import type { Quotable, Forwardable, MessageElem, FileElem } from './elements'
+import type { Parser } from './parser'
+import type { GroupRole, Gender } from '../common'
 
 /** 匿名情报 */
 export interface Anonymous {
@@ -30,18 +34,18 @@ export function genDmMessageId(uid: number, seq: number, rand: number, time: num
   buf.writeInt32BE(seq & 0xffffffff, 4)
   buf.writeInt32BE(rand & 0xffffffff, 8)
   buf.writeUInt32BE(time, 12)
-  buf.writeUInt8(flag, 16) //接收为0 发送为1
+  buf.writeUInt8(flag, 16) // 接收为0 发送为1
   return buf.toString('base64')
 }
 
 /** @cqhttp 解析私聊消息id */
 export function parseDmMessageId(msgid: string) {
   const buf = Buffer.from(msgid, 'base64')
-  const user_id = buf.readUInt32BE(),
-    seq = buf.readUInt32BE(4),
-    rand = buf.readUInt32BE(8),
-    time = buf.readUInt32BE(12),
-    flag = buf.length >= 17 ? buf.readUInt8(16) : 0
+  const user_id = buf.readUInt32BE()
+  const seq = buf.readUInt32BE(4)
+  const rand = buf.readUInt32BE(8)
+  const time = buf.readUInt32BE(12)
+  const flag = buf.length >= 17 ? buf.readUInt8(16) : 0
   return { user_id, seq, rand, time, flag }
 }
 
@@ -67,12 +71,12 @@ export function genGroupMessageId(
 /** @cqhttp 解析群消息id */
 export function parseGroupMessageId(msgid: string) {
   const buf = Buffer.from(msgid, 'base64')
-  const group_id = buf.readUInt32BE(),
-    user_id = buf.readUInt32BE(4),
-    seq = buf.readUInt32BE(8),
-    rand = buf.readUInt32BE(12),
-    time = buf.readUInt32BE(16),
-    pktnum = buf.length >= 21 ? buf.readUInt8(20) : 1
+  const group_id = buf.readUInt32BE()
+  const user_id = buf.readUInt32BE(4)
+  const seq = buf.readUInt32BE(8)
+  const rand = buf.readUInt32BE(12)
+  const time = buf.readUInt32BE(16)
+  const pktnum = buf.length >= 21 ? buf.readUInt8(20) : 1
   return { group_id, user_id, seq, rand, time, pktnum }
 }
 
@@ -93,7 +97,7 @@ export abstract class Message implements Quotable, Forwardable {
     return this.sender?.card || this.sender?.nickname || ''
   }
 
-  post_type = 'message' as 'message'
+  post_type = 'message' as const
   /** 消息时间 */
   time: number
   /** 消息元素数组 */
@@ -133,7 +137,7 @@ export abstract class Message implements Quotable, Forwardable {
   static combine(msgs: Message[]) {
     msgs.sort((a, b) => a.index - b.index)
     const host = msgs[0] as GroupMessage
-    let chain = host.message
+    const chain = host.message
     for (const guest of msgs.slice(1)) {
       if ((guest as GroupMessage).atme) host.atme = true
       if ((guest as GroupMessage).atall) host.atall = true
@@ -149,9 +153,9 @@ export abstract class Message implements Quotable, Forwardable {
 
   constructor(protected proto: pb.Proto) {
     this.proto = proto
-    const head = proto[1],
-      frag = proto[2],
-      body = proto[3]
+    const head = proto[1]
+    const frag = proto[2]
+    const body = proto[3]
     this.pktnum = frag[1]
     this.index = frag[2]
     this.div = frag[3]
@@ -199,7 +203,7 @@ export abstract class Message implements Quotable, Forwardable {
 
 /** 一条私聊消息 */
 export class PrivateMessage extends Message {
-  message_type = 'private' as 'private'
+  message_type = 'private' as const
   /** friend:好友 group:群临时会话 self:我的设备 other:其他途径的临时会话 */
   sub_type = 'friend' as 'friend' | 'group' | 'other' | 'self'
   from_id: number
@@ -219,9 +223,9 @@ export class PrivateMessage extends Message {
 
   constructor(proto: pb.Proto, uin?: number) {
     super(proto)
-    const head = proto[1],
-      content = proto[2],
-      body = proto[3]
+    const head = proto[1]
+    const content = proto[2]
+    const body = proto[3]
     this.from_id = this.sender.user_id = head[1]
     this.to_id = head[2]
     this.auto_reply = !!(content && content[4])
@@ -256,16 +260,19 @@ export class PrivateMessage extends Message {
         else this.sender.discuss_id = head[8]?.[4]
         break
     }
-    let opposite = this.from_id,
-      flag = 0
-    if (this.from_id === uin) (opposite = this.to_id), (flag = 1)
+    let opposite = this.from_id
+    let flag = 0
+    if (this.from_id === uin) {
+      opposite = this.to_id
+      flag = 1
+    }
     this.message_id = genDmMessageId(opposite, this.seq, this.rand, this.time, flag)
   }
 }
 
 /** 一条群消息 */
 export class GroupMessage extends Message {
-  message_type = 'group' as 'group'
+  message_type = 'group' as const
   /** anonymous:匿名 normal:通常  */
   sub_type: 'normal' | 'anonymous'
   group_id: number
@@ -338,7 +345,7 @@ export class GroupMessage extends Message {
 
 /** 一条讨论组消息 */
 export class DiscussMessage extends Message {
-  message_type = 'discuss' as 'discuss'
+  message_type = 'discuss' as const
   discuss_id: number
   discuss_name: string
   atme: boolean
@@ -363,7 +370,7 @@ export class DiscussMessage extends Message {
     this.sender = {
       user_id: proto[1][1],
       nickname: card,
-      card: card
+      card
     }
     this.rand = proto[3][1][1][3]
   }
@@ -442,7 +449,7 @@ function escapeCQInside(s: string) {
 
 function genCqcode(content: MessageElem[]) {
   let cqcode = ''
-  for (let elem of content) {
+  for (const elem of content) {
     if (elem.type === 'text') {
       cqcode += elem.text
       continue
@@ -450,7 +457,7 @@ function genCqcode(content: MessageElem[]) {
     const tmp = { ...elem } as Partial<MessageElem>
     delete tmp.type
     const str = qs.stringify(tmp as NodeJS.Dict<any>, ',', '=', {
-      encodeURIComponent: s => s.replace(/&|,|\[|\]/g, escapeCQInside)
+      encodeURIComponent: (s) => s.replace(/&|,|\[|\]/g, escapeCQInside)
     })
     cqcode += '[CQ:' + elem.type + (str ? ',' : '') + str + ']'
   }

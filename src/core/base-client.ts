@@ -1,13 +1,7 @@
-import { EventEmitter } from 'events'
-import { randomBytes } from 'crypto'
-import { Readable } from 'stream'
-import Network from './network'
-import Ecdh from './ecdh'
-import Writer from './writer'
-import * as tlv from './tlv'
-import * as tea from './tea'
-import * as pb from './protobuf'
-import * as jce from './jce'
+import { randomBytes } from 'node:crypto'
+import { EventEmitter } from 'node:events'
+import { Readable } from 'node:stream'
+
 import {
   BUF0,
   BUF4,
@@ -20,7 +14,16 @@ import {
   unzip,
   int32ip2str
 } from './constants'
-import { ShortDevice, Device, generateFullDevice, Platform, Apk, getApkInfo } from './device'
+import { generateFullDevice, Platform, getApkInfo } from './device'
+import Ecdh from './ecdh'
+import * as jce from './jce'
+import Network from './network'
+import * as pb from './protobuf'
+import * as tea from './tea'
+import * as tlv from './tlv'
+import Writer from './writer'
+
+import type { ShortDevice, Device, Apk } from './device'
 
 const FN_NEXT_SEQ = Symbol('FN_NEXT_SEQ')
 const FN_SEND = Symbol('FN_SEND')
@@ -102,6 +105,13 @@ export interface BaseClient {
   on(name: string | symbol, listener: (this: this, ...args: any[]) => void): this
 }
 
+type LoginCmd =
+  | 'wtlogin.login'
+  | 'wtlogin.exchange_emp'
+  | 'wtlogin.trans_emp'
+  | 'StatSvc.register'
+  | 'Client.CorrectTime'
+
 export class BaseClient extends EventEmitter {
   private [IS_ONLINE] = false
   private [LOGIN_LOCK] = false
@@ -147,6 +157,7 @@ export class BaseClient extends EventEmitter {
     emp_time: 0,
     time_diff: 0
   }
+
   readonly pskey: { [domain: string]: Buffer } = {}
   /** 心跳间隔(秒) */
   protected interval = 30
@@ -172,7 +183,7 @@ export class BaseClient extends EventEmitter {
     super()
     this.apk = getApkInfo(p)
     this.device = generateFullDevice(d || uin)
-    this[NET].on('error', err => this.emit('internal.verbose', err.message, VerboseLevel.Error))
+    this[NET].on('error', (err) => this.emit('internal.verbose', err.message, VerboseLevel.Error))
     this[NET].on('close', () => {
       this.statistics.remote_ip = ''
       this.statistics.remote_port = 0
@@ -228,7 +239,7 @@ export class BaseClient extends EventEmitter {
     await register.call(this, true)
     if (!keepalive && this[NET].connected) {
       this.terminate()
-      await new Promise(resolve => this[NET].once('close', resolve))
+      await new Promise((resolve) => this[NET].once('close', resolve))
     }
   }
 
@@ -271,6 +282,7 @@ export class BaseClient extends EventEmitter {
       .read()
     this[FN_SEND_LOGIN]('wtlogin.exchange_emp', body)
   }
+
   /**
    * 使用密码登录
    * @param md5pass 密码的md5值
@@ -281,7 +293,7 @@ export class BaseClient extends EventEmitter {
     this.sig.tgtgt = randomBytes(16)
     this[ECDH] = new Ecdh()
     const t = tlv.getPacker(this)
-    let body = new Writer()
+    const body = new Writer()
       .writeU16(9)
       .writeU16(23)
       .writeBytes(t(0x18))
@@ -380,7 +392,7 @@ export class BaseClient extends EventEmitter {
       .read()
     const pkt = buildCode2dPacket.call(this, 0x31, 0x11100, body)
     this[FN_SEND](pkt)
-      .then(payload => {
+      .then((payload) => {
         payload = tea.decrypt(payload.slice(16, -1), this[ECDH].share_key)
         const stream = Readable.from(payload, { objectMode: false })
         stream.read(54)
@@ -469,12 +481,12 @@ export class BaseClient extends EventEmitter {
 
   /** 获取扫码结果(可定时查询，retcode为0则调用qrcodeLogin登录) */
   async queryQrcodeResult() {
-    let retcode = -1,
-      uin,
-      t106,
-      t16a,
-      t318,
-      tgtgt
+    let retcode = -1
+    let uin
+    let t106
+    let t16a
+    let t318
+    let tgtgt
     if (!this.sig.qrsig.length) return { retcode, uin, t106, t16a, t318, tgtgt }
     const body = new Writer()
       .writeU16(5)
@@ -522,6 +534,7 @@ export class BaseClient extends EventEmitter {
     if (++this.sig.seq >= 0x8000) this.sig.seq = 1
     return this.sig.seq
   }
+
   private [FN_SEND](pkt: Uint8Array, timeout = 5) {
     this.statistics.sent_pkt_cnt++
     const seq = this.sig.seq
@@ -533,7 +546,7 @@ export class BaseClient extends EventEmitter {
       }, timeout * 1000)
       this[NET].join(() => {
         this[NET].write(pkt, () => {
-          this[HANDLERS].set(seq, payload => {
+          this[HANDLERS].set(seq, (payload) => {
             clearTimeout(id)
             this[HANDLERS].delete(seq)
             resolve(payload)
@@ -542,6 +555,7 @@ export class BaseClient extends EventEmitter {
       })
     })
   }
+
   private async [FN_SEND_LOGIN](cmd: LoginCmd, body: Buffer) {
     if (this[IS_ONLINE] || this[LOGIN_LOCK]) return
     const pkt = buildLoginPacket.call(this, cmd, body)
@@ -554,11 +568,13 @@ export class BaseClient extends EventEmitter {
       this.emit('internal.verbose', e.message, VerboseLevel.Error)
     }
   }
+
   /** 发送一个业务包不等待返回 */
   writeUni(cmd: string, body: Uint8Array, seq = 0) {
     this.statistics.sent_pkt_cnt++
     this[NET].write(buildUniPkt.call(this, cmd, body, seq))
   }
+
   /** 发送一个业务包并等待返回 */
   async sendUni(cmd: string, body: Uint8Array, timeout = 5) {
     if (!this[IS_ONLINE]) throw new ApiRejection(-1, `client not online`)
@@ -574,7 +590,7 @@ function buildUniPkt(this: BaseClient, cmd: string, body: Uint8Array, seq = 0) {
   sso.writeUInt32BE(len, 0)
   sso.writeUInt32BE(cmd.length + 4, 4)
   sso.fill(cmd, 8)
-  let offset = cmd.length + 8
+  const offset = cmd.length + 8
   sso.writeUInt32BE(8, offset)
   sso.fill(this.sig.session, offset + 4)
   sso.writeUInt32BE(4, offset + 8)
@@ -586,7 +602,7 @@ function buildUniPkt(this: BaseClient, cmd: string, body: Uint8Array, seq = 0) {
   const pkt = Buffer.allocUnsafe(len)
   pkt.writeUInt32BE(len, 0)
   pkt.writeUInt32BE(0x0b, 4)
-  pkt.writeUInt8(1, 8) //type
+  pkt.writeUInt8(1, 8) // type
   pkt.writeInt32BE(seq, 9)
   pkt.writeUInt8(0, 13)
   pkt.writeUInt32BE(uin.length + 4, 14)
@@ -620,7 +636,7 @@ function ssoListener(this: BaseClient, cmd: string, payload: Buffer, seq: number
           const decoded = pb.decode(buf)[1281]
           this.sig.bigdata.sig_session = decoded[1].toBuffer()
           this.sig.bigdata.session_key = decoded[2].toBuffer()
-          for (let v of decoded[3]) {
+          for (const v of decoded[3]) {
             if (v[1] === 10) {
               this.sig.bigdata.port = v[2][0][3]
               this.sig.bigdata.ip = int32ip2str(v[2][0][2])
@@ -766,7 +782,7 @@ async function register(this: BaseClient, logout = false, reflush = false) {
     const payload = await this[FN_SEND](pkt, 10)
     if (logout) return
     const rsp = jce.decodeWrapper(payload)
-    const result = rsp[9] ? true : false
+    const result = !!rsp[9]
     if (!result && !reflush) {
       this.emit('internal.error.token')
     } else {
@@ -793,7 +809,7 @@ async function register(this: BaseClient, logout = false, reflush = false) {
 function syncTimeDiff(this: BaseClient) {
   const pkt = buildLoginPacket.call(this, 'Client.CorrectTime', BUF4, 0)
   this[FN_SEND](pkt)
-    .then(buf => {
+    .then((buf) => {
       try {
         this.sig.time_diff = buf.readInt32BE() - timestamp()
       } catch {}
@@ -852,12 +868,6 @@ function readTlv(r: Readable) {
   return t
 }
 
-type LoginCmd =
-  | 'wtlogin.login'
-  | 'wtlogin.exchange_emp'
-  | 'wtlogin.trans_emp'
-  | 'StatSvc.register'
-  | 'Client.CorrectTime'
 type LoginCmdType = 0 | 1 | 2
 
 function buildLoginPacket(
@@ -868,9 +878,9 @@ function buildLoginPacket(
 ): Buffer {
   this[FN_NEXT_SEQ]()
   this.emit('internal.verbose', `send:${cmd} seq:${this.sig.seq}`, VerboseLevel.Debug)
-  let uin = this.uin,
-    cmdid = 0x810,
-    subappid = this.apk.subid
+  let uin = this.uin
+  let cmdid = 0x810
+  let subappid = this.apk.subid
   if (cmd === 'wtlogin.trans_emp') {
     uin = 0
     cmdid = 0x812
@@ -978,7 +988,7 @@ function decodeT119(this: BaseClient, t119: Buffer) {
     while (len-- > 0) {
       const domain = String(r.read(r.read(2).readUInt16BE()))
       const pskey = r.read(r.read(2).readUInt16BE()) as Buffer
-      const pt4token = r.read(r.read(2).readUInt16BE())
+      // const pt4token = r.read(r.read(2).readUInt16BE())
       this.pskey[domain] = pskey
     }
   }
@@ -1028,7 +1038,7 @@ function decodeLoginResponse(this: BaseClient, payload: Buffer): any {
   if (type === 2) {
     this.sig.t104 = t[0x104]
     if (t[0x192]) return this.emit('internal.slider', String(t[0x192]))
-    return this.emit('internal.error.login', type, '[登陆失败]未知格式的验证码')
+    return this.emit('internal.error.login', type, '[登录失败]未知格式的验证码')
   }
 
   if (type === 160) {
@@ -1053,11 +1063,11 @@ function decodeLoginResponse(this: BaseClient, payload: Buffer): any {
 
   if (t[0x146]) {
     const stream = Readable.from(t[0x146], { objectMode: false })
-    const version = stream.read(4)
+    // const version = stream.read(4)
     const title = stream.read(stream.read(2).readUInt16BE()).toString()
     const content = stream.read(stream.read(2).readUInt16BE()).toString()
     return this.emit('internal.error.login', type, `[${title}]${content}`)
   }
 
-  this.emit('internal.error.login', type, `[登陆失败]未知错误`)
+  this.emit('internal.error.login', type, `[登录失败]未知错误`)
 }

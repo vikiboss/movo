@@ -1,8 +1,10 @@
-import { unzipSync } from 'zlib'
-import { pb } from '../core'
-import * as T from './elements'
+import { unzipSync } from 'node:zlib'
+
 import { facemap, pokemap } from './face'
 import { buildImageFileParam } from './image'
+import { pb } from '../core'
+
+import type * as T from './elements'
 
 /** 解析消息 */
 export function parse(rich: pb.Proto | pb.Proto[], uin?: number) {
@@ -61,12 +63,12 @@ export class Parser {
         brief = elem.type + '消息'
         this.content = elem.data
         break
-      case 3: //flash
+      case 3: // flash
         elem = this.parseImgElem(proto, 'flash') as T.FlashElem
         brief = '闪照'
         this.content = `{flash:${(elem.file as string).slice(0, 32).toUpperCase()}}`
         break
-      case 0: //ptt
+      case 0: // ptt
         elem = {
           type: 'record',
           file: 'protobuf://' + proto.toBase64(),
@@ -82,7 +84,7 @@ export class Parser {
         brief = '语音'
         this.content = `{ptt:${elem.url}}`
         break
-      case 19: //video
+      case 19: // video
         elem = {
           type: 'video',
           file: 'protobuf://' + proto.toBase64(),
@@ -95,7 +97,7 @@ export class Parser {
         brief = '视频'
         this.content = `{video:${elem.fid}}`
         break
-      case 5: //transElem
+      case 5: // transElem
         const trans = pb.decode(proto[2].toBuffer().slice(3))[7][2]
         elem = {
           type: 'file',
@@ -108,7 +110,7 @@ export class Parser {
         brief = '群文件'
         this.content = `{file:${elem.fid}}`
         break
-      case 126: //poke
+      case 126: // poke
         if (!proto[3]) return
         const pokeid = proto[3] === 126 ? proto[2][4] : proto[3]
         elem = {
@@ -133,7 +135,7 @@ export class Parser {
     let brief = ''
     let content = ''
     switch (type) {
-      case 1: //text&at
+      case 1: // text&at
         brief = String(proto[1])
         const buf = proto[3]?.toBuffer() as Buffer
         if (buf && buf[1] === 1) {
@@ -170,7 +172,7 @@ export class Parser {
           }
         }
         break
-      case 2: //face
+      case 2: // face
         elem = {
           type: 'face',
           id: proto[1],
@@ -179,7 +181,7 @@ export class Parser {
         brief = `[${elem.text}]`
         content = `{face:${elem.id}}`
         break
-      case 33: //face(id>255)
+      case 33: // face(id>255)
         elem = {
           type: 'face',
           id: proto[1],
@@ -189,7 +191,7 @@ export class Parser {
         brief = `[${elem.text}]`
         content = `{face:${elem.id}}`
         break
-      case 6: //bface
+      case 6: // bface
         brief = this.getNextText()
         if (brief.includes('骰子') || brief.includes('猜拳')) {
           elem = {
@@ -212,7 +214,7 @@ export class Parser {
         brief = elem.asface ? '[动画表情]' : '[图片]'
         content = `{image:${(elem.file as string).slice(0, 32).toUpperCase()}}`
         break
-      case 34: //sface
+      case 34: // sface
         brief = this.getNextText()
         elem = {
           type: 'sface',
@@ -221,7 +223,7 @@ export class Parser {
         }
         content = `{sface:${elem.id}}`
         break
-      case 31: //mirai
+      case 31: // mirai
         if (proto[3] === 103904510) {
           brief = content = String(proto[2])
           elem = {
@@ -260,45 +262,45 @@ export class Parser {
   private parseElems(arr: pb.Proto[]) {
     this.it = arr.entries()
     while (true) {
-      let wrapper = this.it.next().value?.[1]
+      const wrapper = this.it.next().value?.[1]
       if (!wrapper) break
       const type = Number(Object.keys(Reflect.getPrototypeOf(wrapper) as object)[0])
       const proto = wrapper[type]
       if (type === 16) {
-        //extraInfo
+        // extraInfo
         this.extra = proto
       } else if (type === 21) {
-        //anonGroupMsg
+        // anonGroupMsg
         this.anon = proto
       } else if (type === 45) {
-        //sourceMsg
+        // sourceMsg
         this.quotation = proto
       } else if (!this.exclusive) {
         switch (type) {
-          case 1: //text
-          case 2: //face
-          case 4: //notOnlineImage
-          case 6: //bface
-          case 8: //customFace
-          case 31: //mirai
-          case 34: //sface
+          case 1: // text
+          case 2: // face
+          case 4: // notOnlineImage
+          case 6: // bface
+          case 8: // customFace
+          case 31: // mirai
+          case 34: // sface
             this.parsePartialElem(type, proto)
             break
-          case 5: //transElem
-          case 12: //xml
-          case 19: //video
-          case 51: //json
+          case 5: // transElem
+          case 12: // xml
+          case 19: // video
+          case 51: // json
             this.parseExclusiveElem(type, proto)
             break
-          case 53: //commonElem
+          case 53: // commonElem
             if (proto[1] === 3) {
-              //flash
+              // flash
               this.parseExclusiveElem(3, proto[2][1] ? proto[2][1] : proto[2][2])
             } else if (proto[1] === 33) {
-              //face(id>255)
+              // face(id>255)
               this.parsePartialElem(33, proto[2])
             } else if (proto[1] === 2) {
-              //poke
+              // poke
               this.parseExclusiveElem(126, proto)
             }
             break
@@ -325,7 +327,7 @@ export class Parser {
       else if (proto[10]) elem.url = `https://c2cpicdw.qpic.cn/offpic_new/0/${proto[10]}/0`
       if (elem.type === 'image') elem.asface = proto[29]?.[1] === 1
     } else {
-      //群图
+      // 群图
       elem = {
         type,
         file: buildImageFileParam(proto[13].toHex(), proto[25], proto[22], proto[23], proto[20]),

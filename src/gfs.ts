@@ -1,14 +1,15 @@
-import fs from 'fs'
-import path from 'path'
-import { randomBytes } from 'crypto'
-import { Readable } from 'stream'
+import { randomBytes } from 'node:crypto'
+import fs from 'node:fs'
+import path from 'node:path'
+import { Readable } from 'node:stream'
+
+import * as common from './common'
 import { pb } from './core'
 import { drop, ErrorCode } from './errors'
-import * as common from './common'
 import { highwayUpload } from './internal'
-import { FileElem } from './message'
 
-type Client = import('./client').Client
+import type { Client } from './client'
+import type { FileElem } from './message'
 
 /** (群文件/目录) 共通属性 */
 export interface GfsBaseStat {
@@ -55,10 +56,12 @@ export class Gfs {
   get group_id() {
     return this.gid
   }
+
   /** 返回所在群的实例 */
   get group() {
     return this.c.pickGroup(this.gid)
   }
+
   /** 返回所属的客户端对象 */
   get client() {
     return this.c
@@ -81,9 +84,9 @@ export class Gfs {
         })
         const payload = await this.c.sendOidb('OidbSvc.0x6d8_3', body)
         const rsp = pb.decode(payload)[4][4]
-        const total = Number(rsp[4]),
-          used = Number(rsp[5]),
-          free = total - used
+        const total = Number(rsp[4])
+        const used = Number(rsp[5])
+        const free = total - used
         return {
           total,
           used,
@@ -99,8 +102,8 @@ export class Gfs {
         })
         const payload = await this.c.sendOidb('OidbSvc.0x6d8_2', body)
         const rsp = pb.decode(payload)[4][3]
-        const file_count = Number(rsp[4]),
-          max_file_count = Number(rsp[6])
+        const file_count = Number(rsp[4])
+        const max_file_count = Number(rsp[6])
         return {
           file_count,
           max_file_count
@@ -130,7 +133,7 @@ export class Gfs {
       return await this._resolve(fid)
     } catch (e) {
       const files = await this.dir('/')
-      for (let file of files) {
+      for (const file of files) {
         if (!file.is_dir) break
         if (file.fid === fid) return file
       }
@@ -155,12 +158,13 @@ export class Gfs {
     const arr: (GfsDirStat | GfsFileStat)[] = []
     if (!rsp[5]) return arr
     const files = Array.isArray(rsp[5]) ? rsp[5] : [rsp[5]]
-    for (let file of files) {
+    for (const file of files) {
       if (file[3]) arr.push(genGfsFileStat(file[3]))
       else if (file[2]) arr.push(genGfsDirStat(file[2]))
     }
     return arr
   }
+
   /** `this.dir`的别名 */
   ls(pid = '/', start = 0, limit = 100) {
     return this.dir(pid, start, limit)
@@ -187,7 +191,7 @@ export class Gfs {
     fid = String(fid)
     let rsp
     if (!fid.startsWith('/')) {
-      //rm file
+      // rm file
       const file = await this._resolve(fid)
       const body = pb.encode({
         4: {
@@ -201,7 +205,7 @@ export class Gfs {
       const payload = await this.c.sendOidb('OidbSvc.0x6d6_3', body)
       rsp = pb.decode(payload)[4][4]
     } else {
-      //rm dir
+      // rm dir
       const body = pb.encode({
         2: {
           1: this.gid,
@@ -220,7 +224,7 @@ export class Gfs {
     fid = String(fid)
     let rsp
     if (!fid.startsWith('/')) {
-      //rename file
+      // rename file
       const file = await this._resolve(fid)
       const body = pb.encode({
         5: {
@@ -235,7 +239,7 @@ export class Gfs {
       const payload = await this.c.sendOidb('OidbSvc.0x6d6_4', body)
       rsp = pb.decode(payload)[4][5]
     } else {
-      //rename dir
+      // rename dir
       const body = pb.encode({
         3: {
           1: this.gid,
@@ -306,7 +310,8 @@ export class Gfs {
     if (file instanceof Uint8Array) {
       if (!Buffer.isBuffer(file)) file = Buffer.from(file)
       size = file.length
-      ;(md5 = common.md5(file)), (sha1 = common.sha(file))
+      md5 = common.md5(file)
+      sha1 = common.sha(file)
       name = name ? String(name) : 'file' + md5.toString('hex')
     } else {
       file = String(file)
