@@ -5,6 +5,8 @@ import axios from 'axios'
 import { Readable } from 'stream'
 import { randomBytes } from 'crypto'
 import { exec } from 'child_process'
+import silkSDK from 'silk-sdk'
+
 import { tea, pb, ApiRejection } from '../core'
 import { ErrorCode, drop } from '../errors'
 import {
@@ -139,7 +141,7 @@ export abstract class Contactable {
 
   /** 上传一批图片以备发送(无数量限制)(理论上传一次所有群和好友都能发) */
   async uploadImages(imgs: Image[] | ImageElem[]) {
-    this.c.logger.debug(`开始图片任务，共有${imgs.length}张图片`)
+    this.c.logger.debug(`开始图片任务，共有 ${imgs.length} 张图片`)
     const tasks: Promise<void>[] = []
     for (let i = 0; i < imgs.length; i++) {
       if (imgs[i] instanceof Image === false)
@@ -149,7 +151,7 @@ export abstract class Contactable {
     const res1 = (await Promise.allSettled(tasks)) as PromiseRejectedResult[]
     for (let i = 0; i < res1.length; i++) {
       if (res1[i].status === 'rejected')
-        this.c.logger.warn(`图片${i + 1}失败, reason: ` + res1[i].reason?.message)
+        this.c.logger.warn(`图片 ${i + 1} 失败, reason: ` + res1[i].reason?.message)
     }
     let n = 0
     while (imgs.length > n) {
@@ -167,7 +169,7 @@ export abstract class Contactable {
       for (let i = 0; i < res2.length; i++) {
         if (res2[i].status === 'rejected') {
           res1[n + i] = res2[i]
-          this.c.logger.warn(`图片${n + i + 1}上传失败, reason: ` + res2[i].reason?.message)
+          this.c.logger.warn(`图片 ${n + i + 1} 上传失败, reason: ` + res2[i].reason?.message)
         }
       }
       n += 20
@@ -364,7 +366,7 @@ export abstract class Contactable {
         10: this.c.apk.version,
         12: 1,
         13: 1,
-        14: codec,
+        14: 0,
         15: 1
       }
     })
@@ -692,16 +694,15 @@ function audioTrans(file: string, ffmpeg = 'ffmpeg'): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const tmpfile = path.join(TMP_DIR, uuid())
     exec(
-      `${ffmpeg} -y -i "${file}" -ac 1 -ar 8000 -f amr "${tmpfile}"`,
+      `${ffmpeg} -i "${file}" -f s16le -ac 1 -ar 24000 "${tmpfile}"`,
       async (error, stdout, stderr) => {
         try {
-          const amr = await fs.promises.readFile(tmpfile)
-          resolve(amr)
+          resolve(silkSDK.encode(tmpfile, { tencent: true }))
         } catch {
           reject(
             new ApiRejection(
               ErrorCode.FFmpegPttTransError,
-              '音频转码到amr失败，请确认你的ffmpeg可以处理此转换'
+              '音频转码到 pcm 失败，请确认你的 ffmpeg 可以处理此转换'
             )
           )
         } finally {
