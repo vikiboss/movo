@@ -2,15 +2,14 @@
 
 Modified from [oicq](https://github.com/takayama-lily/oicq), documentation is [here](https://movo.viki.moe).
 
-**Changes in this fork**
+**Modifications in this fork**
 
-- remove **oicq http** (onebot).
-- remove `docs` directory, config CI to automatically generate.
-- optimize the source code directory structure, and remove not that important directories, such as `demo`, `test` and etc.
-- change `npm` to `pnpm` to manage node modules.
-- optimize TS compile configurations in `tsconfig.json`.
+- generate type docs automatically via `type-doc`.
+- use `silk` format for better audio quality.
+- use `pnpm` to manage node modules.
+- remove **oicq http** (onebot) and some extras dirs.
+- optimize TypeScript compile configs.
+- fix sent message count
+- up Android Client `subid`
 
-**next steps**
-
-- [ ] fix some bugs in movo.
-- ...
+...
