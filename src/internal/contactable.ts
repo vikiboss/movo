@@ -249,7 +249,7 @@ export abstract class Contactable {
         }
       )
     })
-    const [width, height, seconds] = (await new Promise(resolve => {
+    const [width, height, seconds] = (await new Promise<[number, number, number]>(resolve => {
       exec(
         `${this.c.config.ffprobe_path || 'ffprobe'} -i "${file}" -show_streams`,
         (error, stdout, stderr) => {
