@@ -517,6 +517,7 @@ export abstract class Contactable {
         }
       }
       const maker = new Converter(fake.message, { dm: this.dm })
+      if (fake.source) maker.quote(fake.source)
       if (maker?.brief && brief) {
         maker.brief = brief
       }
