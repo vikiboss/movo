@@ -465,10 +465,10 @@ export abstract class Contactable {
   }
 
   /**
-   * 1. 制作一条合并转发消息以备发送(制作一次可以到处发)。
+   * 1. 制作一条合并转发消息以备发送 (制作一次可以到处发)。
    * 2. 需要注意的是，好友图片和群图片的内部格式不一样，
    *    对着群制作的转发消息中的图片，发给好友可能会裂图，反过来也一样。
-   * 3. 暂不完全支持套娃转发。
+   * 3. 支持 4 层套娃转发（PC 仅显示三层）。
    */
   async makeForwardMsg(msglist: Forwardable[] | Forwardable): Promise<XmlElem> {
     if (!Array.isArray(msglist)) msglist = [msglist]
@@ -477,8 +477,49 @@ export abstract class Contactable {
     let imgs: Image[] = []
     let preview = ''
     let cnt = 0
+    let MultiMsg = []
+    let brief
     for (const fake of msglist) {
-      const maker = new Converter(fake.message, { dm: this.dm, cachedir: this.c.config.data_dir })
+      if (typeof fake.message == 'object' && !Array.isArray(fake.message)) {
+        if (fake.message.type == 'xml' && fake.message.data) {
+          let data = fake.message.data
+          let brief_reg = /brief\=\"(.*?)\"/gm.exec(data)
+
+          if (brief_reg && brief_reg.length > 0) {
+            brief = brief_reg[1]
+          }
+
+          let resid_reg = /m_resid\=\"(.*?)\"/gm.exec(data)
+          let fileName_reg = /m_fileName\=\"(.*?)\"/gm.exec(data)
+          if (resid_reg && resid_reg.length > 1 && fileName_reg && fileName_reg.length > 1) {
+            const buf = await this._downloadMultiMsg(String(resid_reg[1]), 2)
+            let a = pb.decode(buf)[2]
+            if (!Array.isArray(a)) {
+              a = [a]
+            }
+            for (let b of a) {
+              let m_fileName = b[1].toString()
+              if (m_fileName === 'MultiMsg') {
+                MultiMsg.push({
+                  1: fileName_reg[1],
+                  2: b[2]
+                })
+              } else {
+                MultiMsg.push(b)
+              }
+            }
+          }
+        } else if (fake.message.type == 'json' && fake.message.data) {
+          let json = fake.message.data
+          if (json) {
+            brief = json.prompt
+          }
+        }
+      }
+      const maker = new Converter(fake.message, { dm: this.dm })
+      if (maker?.brief && brief) {
+        maker.brief = brief
+      }
       makers.push(maker)
       const seq = randomBytes(2).readInt16BE()
       const rand = randomBytes(4).readInt32BE()
@@ -518,17 +559,20 @@ export abstract class Contactable {
         }
       })
     }
+
+    MultiMsg.push({
+      1: 'MultiMsg',
+      2: {
+        1: nodes
+      }
+    })
+
     for (const maker of makers) imgs = [...imgs, ...maker.imgs]
     if (imgs.length) await this.uploadImages(imgs)
     const compressed = await gzip(
       pb.encode({
         1: nodes,
-        2: {
-          1: 'MultiMsg',
-          2: {
-            1: nodes
-          }
-        }
+        2: MultiMsg
       })
     )
     const resid = await this._uploadMultiMsg(compressed)
@@ -537,38 +581,14 @@ export abstract class Contactable {
       nodes.length
     }" flag="3" m_resid="${resid}" serviceID="35" m_fileSize="${
       compressed.length
-    }"><item layout="1"><title color="#000000" size="34">转发的聊天记录</title>${preview}<hr></hr><summary color="#808080" size="26">查看${
+    }"><item layout="1"><title color="#000000"size="34"> 转发的聊天记录 </title>${preview}<hr></hr><summary color="#808080" size="26"> 查看 ${
       nodes.length
-    }条转发消息</summary></item><source name="聊天记录"></source></msg>`
+    } 条转发消息 </summary></item><source name="聊天记录"></source></msg>`
     return {
       type: 'xml',
       data: xml,
       id: 35
     }
-  }
-
-  /** 下载并解析合并转发 */
-  async getForwardMsg(resid: string, fileName: string = 'MultiMsg') {
-    const ret = []
-    const buf = await this._downloadMultiMsg(String(resid), 2)
-    let a = pb.decode(buf)[2]
-    if (!Array.isArray(a)) a = [a]
-    for (let b of a) {
-      const m_fileName = b[1].toString()
-      if (m_fileName === fileName) {
-        a = b
-        break
-      }
-    }
-    if (Array.isArray(a)) a = a[0]
-    a = a[2][1]
-    if (!Array.isArray(a)) a = [a]
-    for (let proto of a) {
-      try {
-        ret.push(new ForwardMessage(proto))
-      } catch {}
-    }
-    return ret
   }
 
   private async _downloadMultiMsg(resid: string, bu: 1 | 2) {
