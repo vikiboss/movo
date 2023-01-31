@@ -1,8 +1,8 @@
 import * as crypto from 'node:crypto'
+import * as pb from 'ptb'
 
 import { md5, BUF0 } from './constants'
 import { getApkInfo, Platform } from './device'
-import * as pb from './protobuf'
 import * as tea from './tea'
 import Writer from './writer'
 

@@ -16,6 +16,7 @@ specifiers:
   prettier: ^2.8.3
   probe-image-size: ^7.2.3
   protobufjs: ^6.11.3
+  ptb: ^1.0.0
   silk-sdk: ^0.2.2
   typedoc: ^0.23.24
   typescript: ^4.9.4
@@ -26,6 +27,7 @@ dependencies:
   long: 4.0.0
   pngjs: 6.0.0
   probe-image-size: 7.2.3
+  ptb: 1.0.0
   silk-sdk: 0.2.2
 
 devDependencies:
@@ -1689,6 +1691,10 @@ packages:
 
   /proxy-from-env/1.1.0:
     resolution: {integrity: sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg==}
+    dev: false
+
+  /ptb/1.0.0:
+    resolution: {integrity: sha512-Vlqq0Mam9Y05HVT0Tvy3v8Ks0D1LMbOtwY8NrQdAeNa7wVm4B9CbxtbD6lun7l2XPTCMDYdfDlO68HQQJkr1ug==}
     dev: false
 
   /punycode/2.3.0:

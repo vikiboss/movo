@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { EventEmitter } from 'node:events'
 import { Readable } from 'node:stream'
+import * as pb from 'ptb'
 
 import {
   BUF0,
@@ -18,7 +19,6 @@ import { generateFullDevice, Platform, getApkInfo } from './device'
 import Ecdh from './ecdh'
 import * as jce from './jce'
 import Network from './network'
-import * as pb from './protobuf'
 import * as tea from './tea'
 import * as tlv from './tlv'
 import Writer from './writer'
