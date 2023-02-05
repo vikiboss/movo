@@ -1,7 +1,7 @@
 {
   "name": "movo",
-  "version": "0.0.5",
-  "upday": "2023/1/31",
+  "version": "0.1.0",
+  "update": "2023/2/5",
   "description": "modified from oicq.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -20,7 +20,7 @@
   "author": "Viki <hi@viki.moe> (https://github.com/vikiboss)",
   "license": "MPL-2.0",
   "dependencies": {
-    "axios": "^1.2.3",
+    "axios": "^1.3.2",
     "log4js": "^6.7.1",
     "long": "^4.0.0",
     "pngjs": "^6.0.0",
@@ -29,7 +29,7 @@
     "silk-sdk": "^0.2.2"
   },
   "devDependencies": {
-    "@types/node": "^16.18.11",
+    "@types/node": "^18.11.19",
     "@types/pngjs": "^6.0.1",
     "@types/probe-image-size": "^7.2.0",
     "@vikiboss/prettier-config": "^0.2.2",
@@ -40,7 +40,7 @@
     "prettier": "^2.8.3",
     "protobufjs": "^6.11.3",
     "typedoc": "^0.23.24",
-    "typescript": "^4.9.4"
+    "typescript": "^4.9.5"
   },
   "files": [
     "lib"

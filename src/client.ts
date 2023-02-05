@@ -223,8 +223,7 @@ export class Client extends BaseClient {
     ;(this.logger as log4js.Logger).level = config.log_level
     if (_) this.logger.mark('创建了新的设备文件：' + file)
     this.logger.mark('----------')
-    this.logger.mark(`Package Version: oicq@${pkg.version} (Released on ${pkg.upday})`)
-    this.logger.mark('View Changelogs：https://github.com/takayama-lily/oicq/releases')
+    this.logger.mark(`Package Version: movo@${pkg.version} (Released on ${pkg.update})`)
     this.logger.mark('----------')
 
     this.dir = dir
