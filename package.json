@@ -1,6 +1,6 @@
 {
   "name": "movo",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "update": "2023/2/6",
   "description": "QQ Android protocal based on Node.js, modified from oicq",
   "homepage": "https://movo.viki.moe",

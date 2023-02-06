@@ -1,3 +1,8 @@
+import axios from 'axios'
+import log4js from 'log4js'
+import pngjs from 'pngjs'
+import ptb from 'ptb'
+
 export { Client, createClient, Config, Logger, LogLevel, Statistics } from './client'
 export { User, Friend } from './friend'
 export { Discuss, Group } from './group'
@@ -72,6 +77,4 @@ export { ApiRejection, Device, Apk, Platform, Domain } from './core'
 export * as core from './core'
 export { OcrResult } from './internal'
 
-export * from 'axios'
-export * from 'log4js'
-export * from 'pngjs'
+export { axios, ptb, log4js, pngjs }
