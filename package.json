@@ -1,6 +1,6 @@
 {
   "name": "movo",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "update": "2023/2/5",
   "description": "modified from oicq.",
   "main": "lib/index.js",
@@ -23,10 +23,10 @@
     "axios": "^1.3.2",
     "log4js": "^6.7.1",
     "long": "^4.0.0",
+    "node-silk": "^0.1.0",
     "pngjs": "^6.0.0",
     "probe-image-size": "^7.2.3",
-    "ptb": "^1.0.0",
-    "silk-sdk": "^0.2.2"
+    "ptb": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^18.11.19",

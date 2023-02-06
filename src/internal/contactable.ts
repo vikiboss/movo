@@ -1,12 +1,12 @@
 /* eslint-disable n/handle-callback-err */
 import axios from 'axios'
+import { pcm2slk } from 'node-silk'
 import { exec } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import querystring from 'node:querystring'
 import { Readable } from 'node:stream'
-import silkSDK from 'silk-sdk'
 
 import { CmdID, highwayUpload } from './highway'
 import {
@@ -739,14 +739,10 @@ function audioTrans(file: string, ffmpeg = 'ffmpeg'): Promise<Buffer> {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       async (error, stdout, stderr) => {
         try {
-          resolve(silkSDK.encode(tmpfile, { tencent: true }))
+          resolve(pcm2slk(fs.readFileSync(tmpfile)))
         } catch {
-          reject(
-            new ApiRejection(
-              ErrorCode.FFmpegPttTransError,
-              '音频转码到 pcm 失败，请确认你的 ffmpeg 可以处理此转换'
-            )
-          )
+          const msg = '音频转码到 pcm 失败，请确认你的 ffmpeg 可以处理此转换'
+          reject(new ApiRejection(ErrorCode.FFmpegPttTransError, msg))
         } finally {
           fs.unlink(tmpfile, NOOP)
         }
