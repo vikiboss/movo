@@ -1,4 +1,6 @@
 /* eslint-disable no-use-before-define */
+import { genCqcode } from './message'
+
 import type { OutgoingHttpHeaders } from 'node:http'
 import type { Readable } from 'node:stream'
 
@@ -45,6 +47,8 @@ export interface MfaceElem {
 /** 图片 */
 export interface ImageElem {
   type: 'image'
+  /** 图片外显文字 */
+  brief?: string
   /**
    * @type {string} filepath such as "/tmp/1.jpg"
    * @type {Buffer} image buffer
@@ -77,6 +81,8 @@ export interface PttElem {
    * @type {string} filepath such as "/tmp/1.slk"
    * @type {Buffer} ptt buffer (silk or amr)
    */
+  origin: boolean
+  brief?: string
   file: string | Buffer
   url?: string
   md5?: string
@@ -92,6 +98,7 @@ export interface VideoElem {
    * @type {string} filepath such as "/tmp/1.mp4"
    */
   file: string
+  brief?: string
   name?: string
   fid?: string
   md5?: string
@@ -224,14 +231,14 @@ export const segment = {
       text
     }
   },
-  /** 经典表情(id=0~324) */
+  /** 经典表情 (id = 0~324) */
   face(id: number): FaceElem {
     return {
       type: 'face',
       id
     }
   },
-  /** 小表情(id规则不明) */
+  /** 小表情 (id 规则不明) */
   sface(id: number, text?: string): FaceElem {
     return {
       type: 'sface',
@@ -239,7 +246,7 @@ export const segment = {
       text
     }
   },
-  /** 原创表情(file规则不明) */
+  /** 原创表情 (file 规则不明) */
   bface(file: string, text: string): BfaceElem {
     return {
       type: 'bface',
@@ -247,22 +254,22 @@ export const segment = {
       text
     }
   },
-  /** 猜拳(id=1~3) */
+  /** 猜拳 (id = 1~3) */
   rps(id?: number): MfaceElem {
     return {
       type: 'rps',
       id
     }
   },
-  /** 骰子(id=1~6) */
+  /** 骰子 (id = 1~6) */
   dice(id?: number): MfaceElem {
     return {
       type: 'dice',
       id
     }
   },
-  /** mention@提及
-   * @param qq 全体成员:"all", 频道:tiny_id
+  /** mention @提及
+   * @param qq 全体成员: "all", 频道: tiny_id
    */
   at(qq: number | 'all' | string, text?: string, dummy?: boolean): AtElem {
     if (typeof qq === 'number' || qq === 'all') {
@@ -273,7 +280,7 @@ export const segment = {
         dummy
       }
     }
-    // 频道中的AT
+    // 频道中的 AT
     return {
       type: 'at',
       qq: 0,
@@ -282,47 +289,54 @@ export const segment = {
       dummy
     }
   },
-  /** 图片(支持http://,base64://) */
+  /** 图片 (支持 https?://, base64://), brief 是外显文字 */
   image(
     file: ImageElem['file'],
+    brief?: string,
     cache?: boolean,
     timeout?: number,
     headers?: OutgoingHttpHeaders
   ): ImageElem {
     return {
       type: 'image',
+      brief,
       file,
       cache,
       timeout,
       headers
     }
   },
-  /** 闪照(支持http://,base64://) */
+  /** 闪照 (支持 https?://, base64://), brief 是外显文字 */
   flash(
     file: ImageElem['file'],
+    brief?: string,
     cache?: boolean,
     timeout?: number,
     headers?: OutgoingHttpHeaders
   ): FlashElem {
     return {
       type: 'flash',
+      brief,
       file,
       cache,
       timeout,
       headers
     }
   },
-  /** 语音(支持http://,base64://) */
-  record(file: string | Buffer): PttElem {
+  /** 语音 (支持 https?://, base64://), origin 控制不转码直接发，PCQQ 会卡死，需要手机播放, brief 是外显文字 */
+  record(file: string | Buffer, origin = false, brief?: string): PttElem {
     return {
       type: 'record',
+      brief,
+      origin,
       file
     }
   },
-  /** 视频(仅支持本地文件) */
-  video(file: string): VideoElem {
+  /** 视频 (仅支持本地文件), brief 是外显文字 */
+  video(file: string, brief?: string): VideoElem {
     return {
       type: 'video',
+      brief,
       file
     }
   },
@@ -339,7 +353,7 @@ export const segment = {
       id
     }
   },
-  /** 一种特殊消息(官方客户端无法解析) */
+  /** 一种特殊消息 (官方客户端无法解析) */
   mirai(data: string): MiraiElem {
     return {
       type: 'mirai',
@@ -373,7 +387,7 @@ export const segment = {
       id
     }
   },
-  /** @deprecated 将CQ码转换为消息链 */
+  /** @deprecated 将 CQ 码转换为消息链，已弃用，请使用 parseCqcode */
   fromCqcode(str: string) {
     const elems: MessageElem[] = []
     const res = str.matchAll(/\[CQ:[^\]]+\]/g)
@@ -392,6 +406,30 @@ export const segment = {
       if (text) elems.push({ type: 'text', text })
     }
     return elems
+  },
+  /** 将 CQ 码转换为消息链 */
+  parseCqcode(str: string) {
+    const elems: MessageElem[] = []
+    const res = str.matchAll(/\[CQ:[^\]]+\]/g)
+    let prev_index = 0
+    for (const v of res) {
+      const text = str.slice(prev_index, v.index).replace(/&#91;|&#93;|&amp;/g, unescapeCQ)
+      if (text) elems.push({ type: 'text', text })
+      const element = v[0]
+      let cq = element.replace('[CQ:', 'type=')
+      cq = cq.substr(0, cq.length - 1)
+      elems.push(qs(cq))
+      prev_index = (v.index as number) + element.length
+    }
+    if (prev_index < str.length) {
+      const text = str.slice(prev_index).replace(/&#91;|&#93;|&amp;/g, unescapeCQ)
+      if (text) elems.push({ type: 'text', text })
+    }
+    return elems
+  },
+  /** 将消息链转换为 CQ 码 */
+  toCqcode(elms: MessageElem[]) {
+    return genCqcode(elms)
   }
 }
 
@@ -401,6 +439,7 @@ function unescapeCQ(s: string) {
   if (s === '&amp;') return '&'
   return ''
 }
+
 function unescapeCQInside(s: string) {
   if (s === '&#44;') return ','
   if (s === '&#91;') return '['
@@ -408,6 +447,7 @@ function unescapeCQInside(s: string) {
   if (s === '&amp;') return '&'
   return ''
 }
+
 function qs(s: string, sep = ',', equal = '=') {
   const ret: any = {}
   const split = s.split(sep)

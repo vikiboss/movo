@@ -195,7 +195,7 @@ export abstract class Message implements Quotable, Forwardable {
     return this.parsed.content
   }
 
-  /** @deprecated 转换为CQ码 */
+  /** 转换为CQ码 */
   toCqcode() {
     return genCqcode(this.message)
   }
@@ -433,7 +433,7 @@ export class ForwardMessage implements Forwardable {
     return this.parsed.content
   }
 
-  /** @deprecated 转换为CQ码 */
+  /** 转换为CQ码 */
   toCqcode() {
     return genCqcode(this.message)
   }
@@ -447,7 +447,7 @@ function escapeCQInside(s: string) {
   return ''
 }
 
-function genCqcode(content: MessageElem[]) {
+export function genCqcode(content: MessageElem[]) {
   let cqcode = ''
   for (const elem of content) {
     if (elem.type === 'text') {
