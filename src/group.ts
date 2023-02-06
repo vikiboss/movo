@@ -623,8 +623,8 @@ export class Group extends Discuss {
     return this.pickMember(uid).setCard(card)
   }
 
-  kickMember(uid: number, block = false) {
-    return this.pickMember(uid).kick(block)
+  kickMember(uid: number, block = false, message?: string) {
+    return this.pickMember(uid).kick(block, message)
   }
 
   muteMember(uid: number, duration = 600) {

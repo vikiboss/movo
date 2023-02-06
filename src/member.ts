@@ -166,14 +166,15 @@ export class Member extends User {
   }
 
   /** 踢 */
-  async kick(block = false) {
+  async kick(block = false, message = '') {
     const body = pb.encode({
       1: this.gid,
       2: {
         1: 5,
         2: this.uid,
         3: block ? 1 : 0
-      }
+      },
+      5: message
     })
     const payload = await this.c.sendOidb('OidbSvc.0x8a0_0', body)
     const ret = pb.decode(payload)[4][2][1] === 0
