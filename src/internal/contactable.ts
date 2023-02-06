@@ -1,6 +1,5 @@
 /* eslint-disable n/handle-callback-err */
 import axios from 'axios'
-import { pcm2slk } from 'node-silk'
 import { exec } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
 import fs from 'node:fs'
@@ -340,9 +339,9 @@ export abstract class Contactable {
 
   /** 上传一个语音以备发送(理论上传一次所有群和好友都能发) */
   async uploadPtt(elem: PttElem): Promise<PttElem> {
-    this.c.logger.debug('开始语音任务')
+    this.c.logger.debug('开始语音任务...')
     if (typeof elem.file === 'string' && elem.file.startsWith('protobuf://')) return elem
-    const buf = await getPttBuffer(elem.file, this.c.config.ffmpeg_path)
+    const buf = await getPttBuffer(elem.file, this.c.config.ffmpeg_path, elem.origin)
     const hash = md5(buf)
     const codec = String(buf.slice(0, 7)).includes('SILK') ? 1 : 0
     const body = pb.encode({
@@ -362,7 +361,7 @@ export abstract class Contactable {
         10: this.c.apk.version,
         12: 1,
         13: 1,
-        14: 0,
+        14: codec,
         15: 1
       }
     })
@@ -400,10 +399,12 @@ export abstract class Contactable {
       6: buf.length,
       11: 1,
       18: fid,
+      19: buf.length,
       30: Buffer.from([8, 0, 40, 0, 56, 0])
     })
     return {
       type: 'record',
+      origin: elem.origin,
       file: 'protobuf://' + Buffer.from(b).toString('base64')
     }
   }
@@ -466,7 +467,11 @@ export abstract class Contactable {
    *    对着群制作的转发消息中的图片，发给好友可能会裂图，反过来也一样。
    * 3. 支持 4 层套娃转发（PC 仅显示三层）。
    */
-  async makeForwardMsg(msglist: Forwardable[] | Forwardable): Promise<XmlElem> {
+  async makeForwardMsg(
+    msglist: Forwardable[] | Forwardable,
+    title = '转发的聊天记录',
+    desc?: string
+  ): Promise<XmlElem> {
     if (!Array.isArray(msglist)) msglist = [msglist]
     const nodes = []
     const makers: Converter[] = []
@@ -526,9 +531,11 @@ export abstract class Contactable {
           this.c.fl.get(fake.user_id)?.nickname || this.c.sl.get(fake.user_id)?.nickname || nickname
       if (cnt < 4) {
         cnt++
-        preview += `<title color="#777777" size="26">${escapeXml(nickname)}: ${escapeXml(
-          maker.brief.slice(0, 50)
-        )}</title>`
+        if (!desc) {
+          preview += `<title color="#777777" size="26">${escapeXml(nickname)}: ${escapeXml(
+            maker.brief.slice(0, 50)
+          )}</title>`
+        }
       }
       nodes.push({
         1: {
@@ -564,6 +571,7 @@ export abstract class Contactable {
       }
     })
 
+    if (desc) preview = `<title color="#777777" size="26">${desc}</title>`
     for (const maker of makers) imgs = [...imgs, ...maker.imgs]
     if (imgs.length) await this.uploadImages(imgs)
     const compressed = await gzip(
@@ -578,7 +586,7 @@ export abstract class Contactable {
       nodes.length
     }" flag="3" m_resid="${resid}" serviceID="35" m_fileSize="${
       compressed.length
-    }"><item layout="1"><title color="#000000"size="34"> 转发的聊天记录 </title>${preview}<hr></hr><summary color="#808080" size="26"> 查看 ${
+    }"><item layout="1"><title color="#000000"size="34"> ${title} </title>${preview}<hr></hr><summary color="#808080" size="26"> 查看 ${
       nodes.length
     } 条转发消息 </summary></item><source name="聊天记录"></source></msg>`
     return {
@@ -652,7 +660,8 @@ export abstract class Contactable {
   }
 
   /** 获取视频下载地址 */
-  async getVideoUrl(fid: string, md5: string | Buffer) {
+  async getVideoUrl(fid: string, md5?: string | Buffer) {
+    if (!md5) md5 = fid
     const body = pb.encode({
       1: 400,
       4: {
@@ -693,12 +702,16 @@ async function* concatStreams(readable1: Readable, readable2: Readable) {
   for await (const chunk of readable2) yield chunk
 }
 
-async function getPttBuffer(file: string | Buffer, ffmpeg = 'ffmpeg'): Promise<Buffer> {
+async function getPttBuffer(
+  file: string | Buffer,
+  ffmpeg = 'ffmpeg',
+  origin = false
+): Promise<Buffer> {
   if (file instanceof Buffer || file.startsWith('base64://')) {
-    // Buffer或base64
+    // Buffer 或 base64
     const buf = file instanceof Buffer ? file : Buffer.from(file.slice(9), 'base64')
     const head = buf.slice(0, 7).toString()
-    if (head.includes('SILK') || head.includes('AMR')) {
+    if (head.includes('SILK') || head.includes('AMR') || origin) {
       return buf
     } else {
       const tmpfile = path.join(TMP_DIR, uuid())
@@ -735,13 +748,14 @@ function audioTrans(file: string, ffmpeg = 'ffmpeg'): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const tmpfile = path.join(TMP_DIR, uuid())
     exec(
-      `${ffmpeg} -i "${file}" -f s16le -ac 1 -ar 24000 "${tmpfile}"`,
+      `${ffmpeg} -y -i "${file}" -ac 1 -ar 8000 -f amr "${tmpfile}"`,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      async (error, stdout, stderr) => {
+      async () => {
         try {
-          resolve(pcm2slk(fs.readFileSync(tmpfile)))
+          const amr = await fs.promises.readFile(tmpfile)
+          resolve(amr)
         } catch {
-          const msg = '音频转码到 pcm 失败，请确认你的 ffmpeg 可以处理此转换'
+          const msg = '音频转码到 amr 失败，请确认你的 ffmpeg 可以处理此转换'
           reject(new ApiRejection(ErrorCode.FFmpegPttTransError, msg))
         } finally {
           fs.unlink(tmpfile, NOOP)

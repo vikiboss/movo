@@ -73,6 +73,7 @@ export class Parser {
           type: 'record',
           file: 'protobuf://' + proto.toBase64(),
           url: '',
+          origin: false,
           md5: proto[4].toHex(),
           size: proto[6] || 0,
           seconds: proto[19] || 0

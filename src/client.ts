@@ -401,8 +401,8 @@ export class Client extends BaseClient {
   }
 
   /** 制作转发消息 */
-  makeForwardMsg(fake: Forwardable[], dm = false) {
-    return (dm ? this.pickFriend : this.pickGroup)(this.uin).makeForwardMsg(fake)
+  makeForwardMsg(fake: Forwardable[], title?: string, desc?: string, dm = false) {
+    return (dm ? this.pickFriend : this.pickGroup)(this.uin).makeForwardMsg(fake, title, desc)
   }
 
   /** Ocr图片转文字 */
