@@ -283,7 +283,7 @@ export class Converter {
     const img = new Image(elem, this.ext?.dm, this.ext?.cachedir)
     this.imgs.push(img)
     this.elems.push(this.ext?.dm ? { 4: img.proto } : { 8: img.proto })
-    this.brief += '[图片]'
+    this.brief = this.brief || '[图片]'
   }
 
   private flash(elem: FlashElem) {
@@ -301,7 +301,7 @@ export class Converter {
         1: '[闪照]请使用新版手机QQ查看闪照。'
       }
     })
-    this.brief += '[闪照]'
+    this.brief = this.brief || '[闪照]'
   }
 
   private record(elem: PttElem) {
@@ -309,7 +309,7 @@ export class Converter {
     if (!file.startsWith('protobuf://')) throw new Error('非法的语音元素: ' + file)
     const buf = Buffer.from(file.replace('protobuf://', ''), 'base64')
     this.rich[4] = buf
-    this.brief += '[语音]'
+    this.brief = this.brief || '[语音]'
     this.is_chain = false
   }
 
@@ -323,7 +323,7 @@ export class Converter {
         1: '你的QQ暂不支持查看视频短片，请期待后续版本。'
       }
     })
-    this.brief += '[视频]'
+    this.brief = this.brief || '[视频]'
     this.is_chain = false
   }
 
@@ -430,7 +430,7 @@ export class Converter {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private file(elem: FileElem) {
-    throw new Error('暂不支持发送或转发file元素，请调用文件相关API完成该操作')
+    throw new Error('暂不支持发送或转发 file 元素，请调用文件相关 API 完成该操作')
   }
 
   private reply(elem: ReplyElem) {
@@ -470,7 +470,7 @@ export class Converter {
       let chunk = text.slice(n, m)
       n = m
       if (text.length > n) {
-        // emoji不能从中间分割，否则客户端会乱码
+        // emoji 不能从中间分割，否则客户端会乱码
         while (EMOJI_NOT_ENDING.includes(chunk[chunk.length - 1]) && text[n]) {
           chunk += text[n]
           ++n
