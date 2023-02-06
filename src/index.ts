@@ -71,3 +71,7 @@ export {
 export { ApiRejection, Device, Apk, Platform, Domain } from './core'
 export * as core from './core'
 export { OcrResult } from './internal'
+
+export * from 'axios'
+export * from 'log4js'
+export * from 'pngjs'
