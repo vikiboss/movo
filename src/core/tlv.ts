@@ -21,7 +21,8 @@ function packTlv(this: BaseClient, tag: number, ...args: any[]) {
 
 export type Domain =
   | 'aq.qq.com'
-  | 'buluo.qq.com'
+  | 'tenpay.com'
+  // | 'buluo.qq.com'
   | 'connect.qq.com'
   | 'docs.qq.com'
   | 'game.qq.com'
@@ -281,7 +282,8 @@ const map: { [tag: number]: (this: BaseClient, ...args: any[]) => Writer } = {
   0x511: function () {
     const domains = new Set<Domain>([
       'aq.qq.com',
-      'buluo.qq.com',
+      'tenpay.com',
+      // 'buluo.qq.com',
       'connect.qq.com',
       'docs.qq.com',
       'game.qq.com',
