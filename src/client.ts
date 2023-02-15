@@ -221,11 +221,8 @@ export class Client extends BaseClient {
 
     this.logger = log4js.getLogger(`[${this.apk.display}:${uin}]`)
     ;(this.logger as log4js.Logger).level = config.log_level
-    if (_) this.logger.mark('创建了新的设备文件：' + file)
-    this.logger.mark('----------')
-    this.logger.mark(`Package Version: movo@${pkg.version} (Released on ${pkg.update})`)
-    this.logger.mark('----------')
-
+    if (_) this.logger.mark('create unique device file: ' + file)
+    this.logger.mark(`package version: movo@${pkg.version} (released at ${pkg.update})`)
     this.dir = dir
     this.config = config as Required<Config>
     bindInternalListeners.call(this)
