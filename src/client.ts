@@ -261,14 +261,14 @@ export class Client extends BaseClient {
   }
 
   /**
-   * 会优先尝试使用token登录 (token在上次登录成功后存放在`this.dir`下)
+   * 会优先尝试使用 token 登录 (token 在上次登录成功后存放在 `this.dir` 下)
    *
-   * 无token或token失效时：
-   * * 传了`password`则尝试密码登录
-   * * 不传`password`则尝试扫码登录
+   * 无 token 或 token 失效时：
+   * * 传了 `password` 则尝试密码登录
+   * * 不传 `password` 则尝试扫码登录
    *
    * 掉线重连时也是自动调用此函数，走相同逻辑
-   * 你也可以在配置中修改`reconn_interval`，关闭掉线重连并自行处理
+   * 你也可以在配置中修改 `reconn_interval`，关闭掉线重连并自行处理
    *
    * @param password 可以为密码原文，或密码的md5值
    */

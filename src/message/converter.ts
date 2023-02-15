@@ -220,8 +220,7 @@ export class Converter {
   }
 
   private lottie(elem: LottieElem) {
-    let { id, text = '超级表情' } = elem
-    text = '[' + text + ']'
+    const { id, text = '/超级表情' } = elem
     this.elems.push({
       53: {
         1: 37,
@@ -243,12 +242,12 @@ export class Converter {
       1: {
         1: text,
         12: {
-          1: text.replace('/', '') + '请使用最新版手机QQ体验新功能'
+          1: '[' + text.replace('/', '') + ']请使用最新版手机QQ体验新功能'
         }
       }
     })
 
-    this.brief = text.replace('/', '')
+    this.brief = '[' + text.replace('/', '') + ']'
   }
 
   private dice(elem: MfaceElem) {
