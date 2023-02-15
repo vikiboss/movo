@@ -27,7 +27,8 @@ import type {
   ShareElem,
   VideoElem,
   XmlElem,
-  FileElem
+  FileElem,
+  LottieElem
 } from './elements'
 import type { Anonymous } from './message'
 
@@ -199,9 +200,8 @@ export class Converter {
   }
 
   private bface(elem: BfaceElem, magic?: Buffer) {
-    let { file, text } = elem
-    if (!text) text = '原创表情'
-    text = '[' + String(text).slice(0, 5) + ']'
+    let { file, text = '原创表情' } = elem
+    text = '[' + text + ']'
     const o = {
       1: text,
       2: 6,
@@ -217,6 +217,38 @@ export class Converter {
     }
     this.elems.push({ 6: o })
     this._text(text)
+  }
+
+  private lottie(elem: LottieElem) {
+    let { id, text = '超级表情' } = elem
+    text = '[' + text + ']'
+    this.elems.push({
+      53: {
+        1: 37,
+        2: {
+          1: 1,
+          2: 19,
+          3: id,
+          4: 1,
+          5: 1,
+          6: 0,
+          7: text,
+          8: 0,
+          9: 1
+        },
+        3: 1
+      }
+    })
+    this.elems.push({
+      1: {
+        1: text,
+        12: {
+          1: text.replace('/', '') + '请使用最新版手机QQ体验新功能'
+        }
+      }
+    })
+
+    this.brief = text.replace('/', '')
   }
 
   private dice(elem: MfaceElem) {
@@ -283,7 +315,7 @@ export class Converter {
     const img = new Image(elem, this.ext?.dm, this.ext?.cachedir)
     this.imgs.push(img)
     this.elems.push(this.ext?.dm ? { 4: img.proto } : { 8: img.proto })
-    this.brief = this.brief || '[图片]'
+    this.brief += this.brief || '[图片]'
   }
 
   private flash(elem: FlashElem) {
@@ -384,7 +416,7 @@ export class Converter {
         ])
       }
     })
-    this.brief += '[json消息]'
+    this.brief = '[json消息]'
     this.is_chain = false
   }
 
@@ -395,7 +427,7 @@ export class Converter {
         2: (elem.id as number) > 0 ? elem.id : 60
       }
     })
-    this.brief += '[xml消息]'
+    this.brief = '[xml消息]'
     this.is_chain = false
   }
 
@@ -413,7 +445,7 @@ export class Converter {
         3: id
       }
     })
-    this.brief += '[戳一戳]'
+    this.brief = '[戳一戳]'
     this.is_chain = false
   }
 

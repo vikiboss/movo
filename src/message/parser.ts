@@ -111,6 +111,16 @@ export class Parser {
         brief = '群文件'
         this.content = `{file:${elem.fid}}`
         break
+      case 37: // lottie
+        if (!proto[3]) return
+        elem = {
+          type: 'lottie',
+          id: proto[2][3],
+          text: proto[2][7] ? String(proto[2][7]) : '超级表情'
+        }
+        brief = elem.text || '超级表情'
+        this.content = `{lottie:${elem.id}}`
+        break
       case 126: // poke
         if (!proto[3]) return
         const pokeid = proto[3] === 126 ? proto[2][4] : proto[3]
@@ -303,6 +313,9 @@ export class Parser {
             } else if (proto[1] === 2) {
               // poke
               this.parseExclusiveElem(126, proto)
+            } else if (proto[1] === 37) {
+              // lottie
+              this.parseExclusiveElem(37, proto)
             }
             break
           default:

@@ -44,6 +44,13 @@ export interface MfaceElem {
   id?: number
 }
 
+/** 超级表情 */
+export interface LottieElem {
+  type: 'lottie'
+  id: number
+  text?: string
+}
+
 /** 图片 */
 export interface ImageElem {
   type: 'image'
@@ -205,6 +212,7 @@ export type MessageElem =
   | FaceElem
   | BfaceElem
   | MfaceElem
+  | LottieElem
   | ImageElem
   | AtElem
   | MiraiElem
@@ -242,6 +250,14 @@ export const segment = {
   sface(id: number, text?: string): FaceElem {
     return {
       type: 'sface',
+      id,
+      text
+    }
+  },
+  /** 超级表情(id规则不明) */
+  lottie(id: number, text?: string) {
+    return {
+      type: 'lottie',
       id,
       text
     }
