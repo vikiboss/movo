@@ -4,13 +4,13 @@ import { genCqcode } from './message'
 import type { OutgoingHttpHeaders } from 'node:http'
 import type { Readable } from 'node:stream'
 
-/** TEXT (此元素可使用字符串代替) */
+/** 文本 (此元素可使用字符串代替) */
 export interface TextElem {
   type: 'text'
   text: string
 }
 
-/** AT */
+/** 艾特 */
 export interface AtElem {
   type: 'at'
   /** 在频道消息中该值为0 */
@@ -51,7 +51,7 @@ export interface LottieElem {
   text?: string
 }
 
-/** 图片 */
+/** 图片（图片表情） */
 export interface ImageElem {
   type: 'image'
   /** 图片外显文字 */
@@ -449,14 +449,14 @@ export const segment = {
   }
 }
 
-function unescapeCQ(s: string) {
+export function unescapeCQ(s: string) {
   if (s === '&#91;') return '['
   if (s === '&#93;') return ']'
   if (s === '&amp;') return '&'
   return ''
 }
 
-function unescapeCQInside(s: string) {
+export function unescapeCQInside(s: string) {
   if (s === '&#44;') return ','
   if (s === '&#91;') return '['
   if (s === '&#93;') return ']'

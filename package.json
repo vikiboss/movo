@@ -12,7 +12,7 @@
     "build": "tsc",
     "lint": "eslint --ext .js,ts,jsx,tsx .",
     "lint:fix": "eslint --fix --ext .js,ts,jsx,tsx .",
-    "clean": "rm -r lib",
+    "clean": "rm -rf lib",
     "release": "npm run clean && npm run build && npm publish"
   },
   "engines": {
