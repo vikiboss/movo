@@ -94,18 +94,25 @@ async function getKuwoSong(id: string) {
     `http://yinyue.kuwo.cn/api/www/music/musicInfo?mid=${id}&httpsStatus=1`,
     { responseType: 'json', headers: { csrf: id, cookie: ' kw_token=' + id } }
   )
+
   rsp = rsp.data.data
-  // let url: any = await axios.get(`http://yinyue.kuwo.cn/url?format=mp3&rid=${id}&response=url&type=convert_url3&from=web&t=${+new Date()}`, { responseType: "json" })
-  const url: any = await axios.get(
-    `http://www.kuwo.cn/api/v1/www/music/playUrl?mid=${id}&type=music&httpsStatus=1`
-  )
-  return {
+
+  const res = {
     title: rsp.name,
     singer: rsp.artist,
     jumpUrl: 'http://yinyue.kuwo.cn/play_detail/' + id,
-    musicUrl: url.data.data.url || 'https://win-web-ra01-sycdn.kuwo.cn',
     preview: rsp.pic
   } as any
+
+  const { data }: any = await axios.get(
+    `http://www.kuwo.cn/api/v1/www/music/playUrl?mid=${id}&type=music&httpsStatus=1`
+  )
+
+  if (data?.data?.url) {
+    res.musicUrl = data.data.url
+  }
+
+  return res
 }
 
 /** 支持的音乐平台 */
@@ -123,7 +130,6 @@ export async function buildMusic(target: number, platform: MusicPlatform, id: st
       appname = 'com.tencent.qqmusic'
       appsign = 'cbd27cd7c861227d013a25b2d10f0799'
       var { singer, title, jumpUrl, musicUrl, preview } = await getQQSong(id)
-      if (!musicUrl) style = 0
     } else if (platform === '163') {
       appid = 100495085
       appname = 'com.netease.cloudmusic'
@@ -150,6 +156,8 @@ export async function buildMusic(target: number, platform: MusicPlatform, id: st
   } catch (e) {
     throw new Error('unknown music id: ' + id + ', in platform: ' + platform)
   }
+
+  if (!musicUrl) style = 0
 
   return {
     1: appid,
