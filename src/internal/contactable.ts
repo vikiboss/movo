@@ -724,7 +724,7 @@ async function getPttBuffer(
     const tmpfile = path.join(TMP_DIR, uuid())
     await pipeline(readable.pipe(new DownloadTransform()), fs.createWriteStream(tmpfile))
     const head = await read7Bytes(tmpfile)
-    if (head.includes('SILK') || head.includes('AMR')) {
+    if (head.includes('SILK') || head.includes('AMR') || origin) {
       const buf = await fs.promises.readFile(tmpfile)
       fs.unlink(tmpfile, NOOP)
       return buf
@@ -736,7 +736,7 @@ async function getPttBuffer(
     file = String(file).replace(/^file:\/{2}/, '')
     IS_WIN && file.startsWith('/') && (file = file.slice(1))
     const head = await read7Bytes(file)
-    if (head.includes('SILK') || head.includes('AMR')) {
+    if (head.includes('SILK') || head.includes('AMR') || origin) {
       return fs.promises.readFile(file)
     } else {
       return audioTrans(file, ffmpeg)
