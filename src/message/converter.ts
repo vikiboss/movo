@@ -314,7 +314,7 @@ export class Converter {
     const img = new Image(elem, this.ext?.dm, this.ext?.cachedir)
     this.imgs.push(img)
     this.elems.push(this.ext?.dm ? { 4: img.proto } : { 8: img.proto })
-    this.brief += this.brief || '[图片]'
+    this.brief += elem.brief || '[图片]'
   }
 
   private flash(elem: FlashElem) {
@@ -332,7 +332,7 @@ export class Converter {
         1: '[闪照]请使用新版手机QQ查看闪照。'
       }
     })
-    this.brief = this.brief || '[闪照]'
+    this.brief = elem.brief || '[闪照]'
   }
 
   private record(elem: PttElem) {
@@ -340,7 +340,7 @@ export class Converter {
     if (!file.startsWith('protobuf://')) throw new Error('非法的语音元素: ' + file)
     const buf = Buffer.from(file.replace('protobuf://', ''), 'base64')
     this.rich[4] = buf
-    this.brief = this.brief || '[语音]'
+    this.brief = elem.brief || '[语音]'
     this.is_chain = false
   }
 
@@ -354,7 +354,7 @@ export class Converter {
         1: '你的QQ暂不支持查看视频短片，请期待后续版本。'
       }
     })
-    this.brief = this.brief || '[视频]'
+    this.brief = elem.brief || '[视频]'
     this.is_chain = false
   }
 
