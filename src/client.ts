@@ -180,6 +180,15 @@ export class Client extends BaseClient {
     }
   })
 
+  readonly pt4: { [domain in Domain]: string } = new Proxy(this.pt4token, {
+    get: (obj: any, domain: string) => {
+      return obj[domain] || ''
+    },
+    set: () => {
+      return false
+    }
+  })
+
   /** 数据统计 */
   get stat() {
     this.statistics.msg_cnt_per_min = this._calcMsgCntPerMin()

@@ -13,6 +13,7 @@ QQ Android protocal based on Node.js, modified from [oicq](https://github.com/ta
 - add **kick reason** when kicking member.
 - add cqcode util functions support in `segment`.
 - add `tenpay.com` to cookie domain.
+- add `pt4token` as `pt4` attribute of client.
 - generate type docs automatically via `type-doc`.
 - support `origin` audio file (may cause bug on pcqq).
 - remove **oicq http** (onebot) and some extras dirs.

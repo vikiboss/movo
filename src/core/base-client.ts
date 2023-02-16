@@ -159,6 +159,7 @@ export class BaseClient extends EventEmitter {
   }
 
   readonly pskey: { [domain: string]: Buffer } = {}
+  readonly pt4token: { [domain: string]: Buffer } = {}
   /** 心跳间隔(秒) */
   protected interval = 30
   /** 随心跳一起触发的函数，可以随意设定 */
@@ -988,8 +989,9 @@ function decodeT119(this: BaseClient, t119: Buffer) {
     while (len-- > 0) {
       const domain = String(r.read(r.read(2).readUInt16BE()))
       const pskey = r.read(r.read(2).readUInt16BE()) as Buffer
-      // const pt4token = r.read(r.read(2).readUInt16BE())
+      const pt4token = r.read(r.read(2).readUInt16BE())
       this.pskey[domain] = pskey
+      this.pt4token[domain] = pt4token
     }
   }
   const token = Buffer.concat([this.sig.d2key, this.sig.d2, this.sig.tgt])
