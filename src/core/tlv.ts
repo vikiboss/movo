@@ -20,30 +20,26 @@ function packTlv(this: BaseClient, tag: number, ...args: any[]) {
 }
 
 export type Domain =
-  | 'aq.qq.com'
-  | 'tenpay.com'
-  // | 'buluo.qq.com'
-  | 'connect.qq.com'
-  | 'docs.qq.com'
-  | 'game.qq.com'
-  | 'gamecenter.qq.com'
-  // | "graph.qq.com"
-  | 'haoma.qq.com'
-  | 'id.qq.com'
-  // | "imgcache.qq.com"
-  | 'kg.qq.com'
-  | 'mail.qq.com'
-  | 'mma.qq.com'
-  | 'office.qq.com'
-  // | "om.qq.com"
-  | 'openmobile.qq.com'
-  | 'qqweb.qq.com'
   | 'qun.qq.com'
-  | 'qzone.qq.com'
+  | 'tenpay.com'
   | 'ti.qq.com'
   | 'v.qq.com'
-  | 'vip.qq.com'
+  | 'qzone.qq.com'
   | 'y.qq.com'
+  | 'docs.qq.com'
+  | 'vip.qq.com'
+  | 'kg.qq.com'
+  | 'aq.qq.com'
+  | 'mail.qq.com'
+  | 'game.qq.com'
+  | 'gamecenter.qq.com'
+  | 'connect.qq.com'
+  | 'mma.qq.com'
+  | 'openmobile.qq.com'
+  | 'office.qq.com'
+  | 'haoma.qq.com'
+  | 'qqweb.qq.com'
+  | 'id.qq.com'
   | ''
 
 const map: { [tag: number]: (this: BaseClient, ...args: any[]) => Writer } = {
@@ -281,30 +277,26 @@ const map: { [tag: number]: (this: BaseClient, ...args: any[]) => Writer } = {
   },
   0x511: function () {
     const domains = new Set<Domain>([
-      'aq.qq.com',
-      'tenpay.com',
-      // 'buluo.qq.com',
-      'connect.qq.com',
-      'docs.qq.com',
-      'game.qq.com',
-      'gamecenter.qq.com',
-      // "graph.qq.com",
-      'haoma.qq.com',
-      'id.qq.com',
-      // "imgcache.qq.com",
-      'kg.qq.com',
-      'mail.qq.com',
-      'mma.qq.com',
-      'office.qq.com',
-      // "om.qq.com",
-      'openmobile.qq.com',
-      'qqweb.qq.com',
       'qun.qq.com',
-      'qzone.qq.com',
+      'tenpay.com',
       'ti.qq.com',
       'v.qq.com',
+      'qzone.qq.com',
+      'y.qq.com',
+      'docs.qq.com',
       'vip.qq.com',
-      'y.qq.com'
+      'kg.qq.com',
+      'aq.qq.com',
+      'mail.qq.com',
+      'game.qq.com',
+      'gamecenter.qq.com',
+      'connect.qq.com',
+      'mma.qq.com',
+      'openmobile.qq.com',
+      'office.qq.com',
+      'haoma.qq.com',
+      'qqweb.qq.com',
+      'id.qq.com'
     ])
     const stream = new Writer().writeU16(domains.size)
     for (const v of domains) stream.writeU8(0x01).writeTlv(v)
