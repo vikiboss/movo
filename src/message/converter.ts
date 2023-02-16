@@ -398,7 +398,7 @@ export class Converter {
       image ? `<picture cover="${escapeXml(image)}"/>` : ''
     }<title>${title}</title><summary>${
       content ? escapeXml(content) : title
-    }</summary></item><source action="app" name="QQ浏览器" icon="http://url.cn/PWkhNu" i_actionData="tencent100446242://" a_actionData="com.tencent.mtt" appid="100446242" url="http://url.cn/UQoBHn"/></msg>`
+    }</summary></item><source action="app" name="QQ浏览器" icon="https://url.cn/PWkhNu" i_actionData="tencent100446242://" a_actionData="com.tencent.mtt" appid="100446242" url="http://url.cn/UQoBHn"/></msg>`
     this.xml({
       type: 'xml',
       data,

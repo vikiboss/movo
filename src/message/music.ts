@@ -12,7 +12,7 @@ async function getQQSong(id: string) {
   const album = rsp.album.mid
   const singer = rsp.singer?.[0]?.name || 'unknown'
   rsp = await axios.get(
-    `http://u.y.qq.com/cgi-bin/musicu.fcg?g_tk=2034008533&uin=0&format=json&data={"comm":{"ct":23,"cv":0},"url_mid":{"module":"vkey.GetVkeyServer","method":"CgiGetVkey","param":{"guid":"4311206557","songmid":["${mid}"],"songtype":[0],"uin":"0","loginflag":1,"platform":"23"}}}&_=1599039471576`,
+    `https://u.y.qq.com/cgi-bin/musicu.fcg?g_tk=2034008533&uin=0&format=json&data={"comm":{"ct":23,"cv":0},"url_mid":{"module":"vkey.GetVkeyServer","method":"CgiGetVkey","param":{"guid":"4311206557","songmid":["${mid}"],"songtype":[0],"uin":"0","loginflag":1,"platform":"23"}}}&_=1599039471576`,
     { responseType: 'json' }
   )
   rsp = rsp.data.url_mid.data.midurlinfo[0]
@@ -21,12 +21,12 @@ async function getQQSong(id: string) {
     singer,
     jumpUrl: `https://i.y.qq.com/v8/playsong.html?platform=11&appshare=android_qq&appversion=10030010&hosteuin=oKnlNenz7i-s7c**&songmid=${mid}&type=0&appsongtype=1&_wv=1&source=qq&ADTAG=qfshare`,
     musicUrl: rsp.purl,
-    preview: `http://y.gtimg.cn/music/photo_new/T002R180x180M000${album}.jpg`
+    preview: `https://y.gtimg.cn/music/photo_new/T002R180x180M000${album}.jpg`
   } as any
 }
 
 async function get163Song(id: string) {
-  let rsp: any = await axios.get(`http://music.163.com/api/song/detail/?id=${id}&ids=[${id}]`, {
+  let rsp: any = await axios.get(`https://music.163.com/api/song/detail/?id=${id}&ids=[${id}]`, {
     responseType: 'json'
   })
   rsp = rsp.data.songs[0]
@@ -34,7 +34,7 @@ async function get163Song(id: string) {
     title: rsp.name,
     singer: rsp.artists[0].name,
     jumpUrl: 'https://y.music.163.com/m/song/' + id,
-    musicUrl: 'http://music.163.com/song/media/outer/url?id=' + id,
+    musicUrl: 'https://music.163.com/song/media/outer/url?id=' + id,
     preview: rsp.album.picUrl
   } as any
 }
@@ -61,7 +61,7 @@ async function getMiGuSong(id: string) {
     )}&resourceType=2&targetUserName=${encodeURIComponent(rsp.singer)}`,
     { responseType: 'json' }
   )
-  const jumpUrl = url.data.url || 'http://c.migu.cn/'
+  const jumpUrl = url.data.url || 'https://music.migu.cn/'
   return {
     title: rsp.songName,
     singer: rsp.singer,
@@ -91,7 +91,7 @@ async function getKuGouSong(id: string) {
 
 async function getKuwoSong(id: string) {
   let rsp: any = await axios.get(
-    `http://yinyue.kuwo.cn/api/www/music/musicInfo?mid=${id}&httpsStatus=1`,
+    `https://yinyue.kuwo.cn/api/www/music/musicInfo?mid=${id}&httpsStatus=1`,
     { responseType: 'json', headers: { csrf: id, cookie: ' kw_token=' + id } }
   )
 
@@ -100,12 +100,12 @@ async function getKuwoSong(id: string) {
   const res = {
     title: rsp.name,
     singer: rsp.artist,
-    jumpUrl: 'http://yinyue.kuwo.cn/play_detail/' + id,
+    jumpUrl: 'https://yinyue.kuwo.cn/play_detail/' + id,
     preview: rsp.pic
   } as any
 
   const { data }: any = await axios.get(
-    `http://www.kuwo.cn/api/v1/www/music/playUrl?mid=${id}&type=music&httpsStatus=1`
+    `https://www.kuwo.cn/api/v1/www/music/playUrl?mid=${id}&type=music&httpsStatus=1`
   )
 
   if (data?.data?.url) {
