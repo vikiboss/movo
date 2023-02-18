@@ -7,13 +7,13 @@ export type Device = ReturnType<typeof generateFullDevice>
 
 const mobile = {
   id: 'com.tencent.mobileqq',
-  name: 'A8.9.23.9425',
-  version: '8.9.23.9425',
-  ver: '8.9.23',
+  name: 'A8.9.30.10200',
+  version: '8.9.30.10200',
+  ver: '8.9.30',
   sign: Buffer.from([166, 183, 69, 191, 36, 162, 194, 119, 82, 119, 22, 246, 243, 110, 182, 141]),
-  buildtime: 1640921786,
+  buildtime: 1671103213,
   appid: 16,
-  subid: 537143609,
+  subid: 537150482,
   bitmap: 150470524,
   sigmap: 16724722,
   sdkver: '6.0.0.2530',
@@ -36,7 +36,8 @@ const watch: Apk = {
   sdkver: '6.0.0.236',
   display: 'Watch'
 }
-const hd: Apk = {
+
+const HD: Apk = {
   id: 'com.tencent.minihd.qq',
   name: 'A5.9.3.3468',
   version: '5.9.3.3468',
@@ -44,7 +45,7 @@ const hd: Apk = {
   sign: Buffer.from([170, 57, 120, 244, 31, 217, 111, 249, 145, 74, 102, 158, 24, 100, 116, 199]),
   buildtime: 1637427966,
   appid: 16,
-  subid: 537142586,
+  subid: 537150493,
   bitmap: 150470524,
   sigmap: 1970400,
   sdkver: '6.0.0.2487',
@@ -58,9 +59,9 @@ function generateImei(uin: number) {
   let a: number | string = buf.readUInt16BE()
   let b: number | string = Buffer.concat([Buffer.alloc(1), buf.slice(1)]).readUInt32BE()
   if (a > 9999) a = Math.trunc(a / 10)
-  else if (a < 1000) a = String(uin).substr(0, 4)
+  else if (a < 1000) a = String(uin).substring(0, 4)
   while (b > 9999999) b = b >>> 1
-  if (b < 1000000) b = String(uin).substr(0, 4) + String(uin).substr(0, 3)
+  if (b < 1000000) b = String(uin).substring(0, 4) + String(uin).substring(0, 3)
   imei += a + '0' + b
   function calcSP(imei: string) {
     let sum = 0
@@ -92,15 +93,15 @@ export function generateShortDevice(uin: number) {
     bootloader: 'U-boot',
     android_id: `OICQX.${hash.readUInt16BE()}${hash[2]}.${hash[3]}${String(uin)[0]}`,
     boot_id:
-      hex.substr(0, 8) +
+      hex.substring(0, 8) +
       '-' +
-      hex.substr(8, 4) +
+      hex.substring(8, 4) +
       '-' +
-      hex.substr(12, 4) +
+      hex.substring(12, 4) +
       '-' +
-      hex.substr(16, 4) +
+      hex.substring(16, 4) +
       '-' +
-      hex.substr(20),
+      hex.substring(20),
     proc_version: `Linux version 4.19.71-${hash.readUInt16BE(4)} (konata@takayama.github.com)`,
     mac_address: `00:50:${hash[6].toString(16).toUpperCase()}:${hash[7]
       .toString(16)
@@ -143,6 +144,7 @@ export function generateFullDevice(d: ShortDevice | number) {
       sdk: 29
     },
     imsi: randomBytes(16),
+    tgtgt: randomBytes(16),
     guid: md5(Buffer.concat([Buffer.from(d.imei), Buffer.from(d.mac_address)]))
   }
 }
@@ -160,16 +162,11 @@ export enum Platform {
 
 const apklist: { [platform in Platform]: Apk } = {
   [Platform.Android]: mobile,
-  [Platform.aPad]: hd,
+  [Platform.aPad]: HD,
   [Platform.Watch]: watch,
-  [Platform.iMac]: { ...hd },
-  [Platform.iPad]: { ...hd }
+  [Platform.iMac]: { ...HD, subid: 537128930, display: 'iMac' },
+  [Platform.iPad]: { ...HD, subid: 537149258, display: 'iPad' }
 }
-
-apklist[Platform.iMac].subid = 537128930
-apklist[Platform.iMac].display = 'iMac'
-apklist[Platform.iPad].subid = 537118796
-apklist[Platform.iPad].display = 'iPad'
 
 export function getApkInfo(p: Platform): Apk {
   return apklist[p] || apklist[Platform.Android]
