@@ -5,13 +5,13 @@ import * as zlib from 'node:zlib'
 
 import type { BinaryLike } from 'node:crypto'
 
-/** 一个0长buf */
+/** 1个 0长 buf */
 export const BUF0 = Buffer.alloc(0)
 
-/** 4个0的buf */
+/** 4个 0长 buf */
 export const BUF4 = Buffer.alloc(4)
 
-/** 16个0的buf */
+/** 16个 0长 buf */
 export const BUF16 = Buffer.alloc(16)
 
 /** no operation */
@@ -35,7 +35,7 @@ export const sha = (data: BinaryLike) => createHash('sha1').update(data).digest(
 /** unix timestamp (second) */
 export const timestamp = () => Math.floor(Date.now() / 1000)
 
-/** 数字ip转通用ip */
+/** 数字 ip 转通用 ip */
 export function int32ip2str(ip: number | string) {
   if (typeof ip === 'string') return ip
   ip = ip & 0xffffffff

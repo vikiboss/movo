@@ -51,11 +51,12 @@ export class User extends Contactable {
     return this.c.pickMember(gid, this.uid, strict)
   }
 
-  /** 获取头像url */
+  /** 获取头像 url */
   getAvatarUrl(size: 0 | 40 | 100 | 140 = 0) {
     return `https://q1.qlogo.cn/g?b=qq&s=${size}&nk=` + this.uid
   }
 
+  /** 获取加好友设置 */
   async getAddFriendSetting() {
     const FS = jce.encodeStruct([this.c.uin, this.uid, 3004, 0, null, 1])
     const body = jce.encodeWrapper(
@@ -88,7 +89,7 @@ export class User extends Contactable {
     drop(ErrorCode.UserNotExists)
   }
 
-  /** 获取`time`往前的`cnt`条聊天记录，默认当前时间，`cnt`默认20不能超过20 */
+  /** 获取 `time` 往前的 `cnt` 条聊天记录，默认当前时间，`cnt` 默认 20 不能超过 20 */
   async getChatHistory(time = timestamp(), cnt = 20) {
     if (cnt > 20) cnt = 20
     const body = pb.encode({
@@ -110,7 +111,7 @@ export class User extends Contactable {
     return messages
   }
 
-  /** 标记`time`之前为已读，默认当前时间 */
+  /** 标记 `time` 之前为已读，默认当前时间 */
   async markRead(time = timestamp()) {
     const body = pb.encode({
       3: {

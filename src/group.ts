@@ -18,6 +18,23 @@ import type { ShareConfig, ShareContent } from './message/share'
 const fetchmap = new Map<string, Promise<Map<number, MemberInfo>>>()
 const weakmap = new WeakMap<GroupInfo, Group>()
 
+const GI_BUF = pb.encode({
+  1: 0,
+  2: 0,
+  5: 0,
+  6: 0,
+  15: '',
+  29: 0,
+  36: 0,
+  37: 0,
+  45: 0,
+  46: 0,
+  49: 0,
+  50: 0,
+  54: 0,
+  89: ''
+})
+
 /** 讨论组 */
 export class Discuss extends Contactable {
   static as(this: Client, gid: number) {
@@ -137,24 +154,6 @@ export class Group extends Discuss {
   /** 强制刷新资料 */
   async renew(): Promise<GroupInfo> {
     if (this._info) this._info.update_time = timestamp()
-
-    const GI_BUF = pb.encode({
-      1: 0,
-      2: 0,
-      5: 0,
-      6: 0,
-      15: '',
-      29: 0,
-      36: 0,
-      37: 0,
-      45: 0,
-      46: 0,
-      49: 0,
-      50: 0,
-      54: 0,
-      89: ''
-    })
-
     const body = pb.encode({
       1: this.c.apk.subid,
       2: {

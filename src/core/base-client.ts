@@ -153,14 +153,14 @@ export class BaseClient extends EventEmitter {
         4: buf
       })
     })(),
-    /** 上次cookie刷新时间 */
+    /** 上次 cookie 刷新时间 */
     emp_time: 0,
     time_diff: 0
   }
 
   readonly pskey: { [domain: string]: Buffer } = {}
   readonly pt4token: { [domain: string]: Buffer } = {}
-  /** 心跳间隔(秒) */
+  /** 心跳间隔 (秒) */
   protected interval = 30
   /** 随心跳一起触发的函数，可以随意设定 */
   protected heartbeat = NOOP
@@ -235,7 +235,7 @@ export class BaseClient extends EventEmitter {
     return this[IS_ONLINE]
   }
 
-  /** 下线 (keepalive: 是否保持tcp连接) */
+  /** 下线 (keepalive: 是否保持 tcp 连接) */
   async logout(keepalive = false) {
     await register.call(this, true)
     if (!keepalive && this[NET].connected) {
@@ -250,7 +250,7 @@ export class BaseClient extends EventEmitter {
     this[NET].destroy()
   }
 
-  /** 使用接收到的token登录 */
+  /** 使用接收到的 token 登录 */
   tokenLogin(token: Buffer) {
     if (![144, 152].includes(token.length)) throw new Error('bad token')
     this.sig.session = randomBytes(4)
@@ -286,7 +286,7 @@ export class BaseClient extends EventEmitter {
 
   /**
    * 使用密码登录
-   * @param md5pass 密码的md5值
+   * @param md5pass 密码的 md5 值
    */
   passwordLogin(md5pass: Buffer) {
     this.sig.session = randomBytes(4)
