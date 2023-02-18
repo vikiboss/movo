@@ -1,4 +1,3 @@
-/* eslint-disable no-var */
 import { randomBytes } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -18,7 +17,6 @@ import type { MessageRet } from './events'
 import type { Sendable, MusicPlatform, Quotable, FileElem } from './message'
 import type { ShareConfig, ShareContent } from './message/share'
 
-// eslint-disable-next-line no-use-before-define
 const weakmap = new WeakMap<FriendInfo, Friend>()
 
 export interface User {
@@ -125,6 +123,7 @@ export class User extends Contactable {
     await this.c.sendUni('PbMessageSvc.PbMsgReadedReport', body)
   }
 
+  /** 撤回消息 */
   async recallMsg(param: number | string | PrivateMessage, rand = 0, time = 0) {
     if (param instanceof PrivateMessage) var { seq, rand, time } = param
     else if (typeof param === 'string') var { seq, rand, time } = parseDmMessageId(param)
@@ -277,6 +276,7 @@ export class User extends Contactable {
     return pb.decode(payload)[1][1] === 0
   }
 
+  /** 获取文件信息 */
   async getFileInfo(fid: string) {
     const body = pb.encode({
       1: 1200,
@@ -330,22 +330,27 @@ export class Friend extends User {
     return this._info
   }
 
+  /** 好友昵称 */
   get nickname() {
     return this.info?.nickname
   }
 
+  /** 好友性别 */
   get sex() {
     return this.info?.sex
   }
 
+  /** 好友备注 */
   get remark() {
     return this.info?.remark
   }
 
+  /** 好友分组 id */
   get class_id() {
     return this.info?.class_id
   }
 
+  /** 好友分组 */
   get class_name() {
     if (this.info?.class_id) {
       return this.c.classes.get(this.info?.class_id)
@@ -398,43 +403,13 @@ export class Friend extends User {
     await this.c.sendUni('friendlist.MovGroupMemReq', body)
   }
 
-  /** 点赞，默认一次
-   * 支持陌生人点赞
-   */
+  /** 点赞，默认一次，支持陌生人点赞 */
   async thumbUp(times = 1) {
     if (times > 20) times = 20
-    let ReqFavorite
-    if (this.c.fl.get(this.uid)) {
-      ReqFavorite = jce.encodeStruct([
-        jce.encodeNested([
-          this.c.uin,
-          1,
-          this.c.sig.seq + 1,
-          1,
-          0,
-          Buffer.from('0C180001060131160131', 'hex')
-        ]),
-        this.uid,
-        0,
-        1,
-        Number(times)
-      ])
-    } else {
-      ReqFavorite = jce.encodeStruct([
-        jce.encodeNested([
-          this.c.uin,
-          1,
-          this.c.sig.seq + 1,
-          1,
-          0,
-          Buffer.from('0C180001060131160135', 'hex')
-        ]),
-        this.uid,
-        0,
-        5,
-        Number(times)
-      ])
-    }
+    const isFriend = this.c.fl.get(this.uid)
+    const buff = Buffer.from(isFriend ? '0C180001060131160131' : '0C180001060131160135', 'hex')
+    const subJce = jce.encodeNested([this.c.uin, 1, this.c.sig.seq + 1, 1, 0, buff])
+    const ReqFavorite = jce.encodeStruct([subJce, this.uid, 0, 1, Number(times)])
     const body = jce.encodeWrapper({ ReqFavorite }, 'VisitorSvc', 'ReqFavorite', this.c.sig.seq + 1)
     const payload = await this.c.sendUni('VisitorSvc.ReqFavorite', body)
     return jce.decodeWrapper(payload)[0][3] === 0

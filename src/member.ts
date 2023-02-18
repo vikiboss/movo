@@ -34,22 +34,27 @@ export class Member extends User {
     return this.gid
   }
 
+  /** 群名片 */
   get card() {
     return this.info?.card || this.info?.nickname
   }
 
+  /** 群头衔 */
   get title() {
     return this.info?.title
   }
 
+  /** 是否是好友 */
   get is_friend() {
     return this.c.fl.has(this.uid)
   }
 
+  /** 是否是群主 */
   get is_owner() {
     return this.info?.role === 'owner'
   }
 
+  /** 是否是群管理 */
   get is_admin() {
     return this.info?.role === 'admin' || this.is_owner
   }
@@ -60,7 +65,7 @@ export class Member extends User {
     return t > 0 ? t : 0
   }
 
-  /** 返回所在群的实例 */
+  /** 所在群的群实例 */
   get group() {
     return this.c.pickGroup(this.gid)
   }

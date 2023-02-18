@@ -11,7 +11,7 @@ import {
 import type { Client } from '../client'
 import type { GroupMessageEvent, DiscussMessageEvent } from '../events'
 
-/** OnlinePush回执 */
+/** OnlinePush 回执 */
 function handleOnlinePush(this: Client, svrip: number, seq: number, items: jce.Nested[] = []) {
   const resp = jce.encodeStruct([this.uin, items, svrip & 0xffffffff, null, 0])
   const body = jce.encodeWrapper({ resp }, 'OnlinePush', 'SvcRespPushMsg', seq)
@@ -34,31 +34,34 @@ type OnlinePushEvent = {
   [k: string]: any
 }
 
+/** 事件解析 */
 const sub0x27: { [k: number]: (this: Client, data: pb.Proto) => OnlinePushEvent | void } = {
   0: function (data) {
-    // add
+    // 新增好友分组
     this.classes.set(data[3][1], String(data[3][3]))
   },
   1: function (data) {
-    // delete
+    // 删除好友分组
     this.classes.delete(data[4][1])
   },
   2: function (data) {
-    // rename
+    // 重命名好友分组
     this.classes.set(data[5][1], String(data[5][2]))
   },
   4: function (data) {
-    // move
+    // 移动好友分组
     const arr = Array.isArray(data[7][1]) ? data[7][1] : [data[7][1]]
     for (const v of arr) this.fl.get(v[1])!.class_id = v[3]
   },
   80: function (data) {
+    // 群名称变更
     const o = data[12]
     const gid = o[3]
     if (!o[4]) return
     this.gl.get(gid)!.group_name = String(o[2][2])
   },
   5: function (data) {
+    // 好友删除
     const user_id = data[14][1]
     const nickname = this.fl.get(user_id)?.nickname || ''
     this.fl.delete(user_id)
@@ -70,7 +73,8 @@ const sub0x27: { [k: number]: (this: Client, data: pb.Proto) => OnlinePushEvent 
     }
   },
   20: function (data) {
-    // 20002昵称 20009性别 20031生日 23109农历生日 20019说明 20032地区 24002故乡 27372在线状态
+    // 资料变动
+    // 20002 昵称 20009 性别 20031 生日 23109 农历生日 20019 说明 20032 地区 24002 故乡 27372 在线状态
     const uid = data[8][1]
     let o = data[8][2]
     if (Array.isArray(o)) o = o[0]
@@ -95,14 +99,15 @@ const sub0x27: { [k: number]: (this: Client, data: pb.Proto) => OnlinePushEvent 
     if (uid === this.uin) this[key as 'nickname'] = value
   },
   40: function (data) {
+    // 备注变动
     const o = data[9][1]
     const uid = o[2]
-    if (o[1] > 0) return // 0好友备注 1群备注
+    if (o[1] > 0) return // 0 好友备注 1 群备注
     this.fl.get(uid)!.remark = String(o[3])
   }
 }
 
-// 好友事件解析
+/** 好友事件解析 */
 const push528: { [k: number]: (this: Client, buf: Buffer) => OnlinePushEvent | void } = {
   0x8a: function (buf) {
     let data = pb.decode(buf)[1]
@@ -199,54 +204,78 @@ function parsePoke(data: any) {
   return { target_id, operator_id, action, suffix }
 }
 
-// 群事件解析
-const push732: { [k: number]: (this: Client, gid: number, buf: Buffer) => OnlinePushEvent | void } =
-  {
-    0x0c: function (gid, buf) {
-      const operator_id = buf.readUInt32BE(6)
-      const user_id = buf.readUInt32BE(16)
-      let duration = buf.readUInt32BE(20)
-      try {
-        if (user_id === 0) {
-          duration = duration ? 0xffffffff : 0
-          this.gl.get(gid)!.shutup_time_whole = duration
-        } else if (user_id === this.uin)
-          this.gl.get(gid)!.shutup_time_me = duration ? timestamp() + duration : 0
-        this.gml.get(gid)!.get(user_id)!.shutup_time = duration ? timestamp() + duration : 0
-      } catch {}
-      this.logger.info(`用户${user_id}在群${gid}被禁言${duration}秒`)
-      return {
-        sub_type: 'ban',
-        operator_id,
-        user_id,
-        duration
-      }
-    },
-    0x11: function (gid, buf) {
-      const data = pb.decode(buf.slice(7))[11]
-      const operator_id = data[1]
-      const msg = Array.isArray(data[3]) ? data[3][0] : data[3]
-      const user_id = msg[6]
-      const message_id = genGroupMessageId(
-        gid,
-        user_id,
-        msg[1],
-        msg[3],
-        msg[2],
-        Array.isArray(data[3]) ? data[3].length : 1
-      )
-      return {
-        sub_type: 'recall',
-        user_id,
-        operator_id,
-        message_id,
-        seq: msg[1],
-        rand: msg[3],
-        time: msg[2]
-      }
-    },
-    0x14: function (gid, buf) {
-      const data = pb.decode(buf.slice(7))[26]
+function parseSign(data: any) {
+  let user_id
+  let nickname = ''
+  let sign_text = ''
+  for (const o of data[7]) {
+    const name = String(o[1])
+    const val = String(o[2])
+    switch (name) {
+      case 'user_sign':
+        sign_text = sign_text || val
+        break
+      case 'mqq_uin':
+        user_id = parseInt(val)
+        break
+      case 'mqq_nick':
+        nickname = val
+        break
+    }
+  }
+  return { user_id, nickname, sign_text }
+}
+
+/** 群事件解析 */
+const push732: {
+  [k: number]: (this: Client, gid: number, buf: Buffer, time?: number) => OnlinePushEvent | void
+} = {
+  0x0c: function (gid, buf) {
+    const operator_id = buf.readUInt32BE(6)
+    const user_id = buf.readUInt32BE(16)
+    let duration = buf.readUInt32BE(20)
+    try {
+      if (user_id === 0) {
+        duration = duration ? 0xffffffff : 0
+        this.gl.get(gid)!.shutup_time_whole = duration
+      } else if (user_id === this.uin)
+        this.gl.get(gid)!.shutup_time_me = duration ? timestamp() + duration : 0
+      this.gml.get(gid)!.get(user_id)!.shutup_time = duration ? timestamp() + duration : 0
+    } catch {}
+    this.logger.info(`用户${user_id}在群${gid}被禁言${duration}秒`)
+    return {
+      sub_type: 'ban',
+      operator_id,
+      user_id,
+      duration
+    }
+  },
+  0x11: function (gid, buf) {
+    const data = pb.decode(buf.slice(7))[11]
+    const operator_id = data[1]
+    const msg = Array.isArray(data[3]) ? data[3][0] : data[3]
+    const user_id = msg[6]
+    const message_id = genGroupMessageId(
+      gid,
+      user_id,
+      msg[1],
+      msg[3],
+      msg[2],
+      Array.isArray(data[3]) ? data[3].length : 1
+    )
+    return {
+      sub_type: 'recall',
+      user_id,
+      operator_id,
+      message_id,
+      seq: msg[1],
+      rand: msg[3],
+      time: msg[2]
+    }
+  },
+  0x14: function (gid, buf, time) {
+    const data = pb.decode(buf.slice(7))[26]
+    try {
       const e = parsePoke(data)
       if (e.action) {
         e.operator_id = e.operator_id || this.uin
@@ -257,24 +286,31 @@ const push732: { [k: number]: (this: Client, gid: number, buf: Buffer) => Online
           user_id: e.target_id
         })
       }
-    },
-    0x0e: function (gid, buf) {
-      if (buf[5] !== 1) return
-      const duration = buf.readInt32BE(10)
-      if (buf[14] !== 0) {
-        const nickname = String(buf.slice(15, 15 + buf[14]))
-        const operator_id = buf.readUInt32BE(6)
-        this.logger.info(`匿名用户${nickname}在群${gid}被禁言${duration}秒`)
-        return {
-          sub_type: 'ban',
-          operator_id,
-          user_id: 80000000,
-          nickname,
-          duration
-        }
+    } catch {}
+    try {
+      const e = parseSign(data)
+      if (e.sign_text) {
+        return Object.assign(e, { group_id: gid, time, sub_type: 'sign' })
+      }
+    } catch {}
+  },
+  0x0e: function (gid, buf) {
+    if (buf[5] !== 1) return
+    const duration = buf.readInt32BE(10)
+    if (buf[14] !== 0) {
+      const nickname = String(buf.slice(15, 15 + buf[14]))
+      const operator_id = buf.readUInt32BE(6)
+      this.logger.info(`匿名用户${nickname}在群${gid}被禁言${duration}秒`)
+      return {
+        sub_type: 'ban',
+        operator_id,
+        user_id: 80000000,
+        nickname,
+        duration
       }
     }
   }
+}
 
 function emitFriendNoticeEvent(c: Client, uid: number, e: OnlinePushEvent | void) {
   if (!e) return

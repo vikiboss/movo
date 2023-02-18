@@ -165,6 +165,14 @@ export interface GroupPokeEvent extends GroupNoticeEvent {
   action: string
   suffix: string
 }
+/** 群签到 */
+export interface GroupSignEvent extends GroupNoticeEvent {
+  sub_type: 'sign' // 群打卡
+  group_id: number // 群号
+  user_id: number // 打卡者
+  nickname: string // 打卡者昵称
+  sign_text: string // 打卡提示
+}
 /** 管理员变更 */
 export interface GroupAdminEvent extends GroupNoticeEvent {
   sub_type: 'admin'
@@ -275,7 +283,9 @@ export interface EventMap<T = any> {
   'notice.group.transfer': (this: T, event: GroupTransferEvent) => void
   /** 群戳一戳事件 */
   'notice.group.poke': (this: T, event: GroupPokeEvent) => void
-  /** 所有好友notice事件 */
+  /** 群打卡事件 */
+  'notice.group.sign': (this: T, event: GroupSignEvent) => void
+  /** 所有好友 notice 事件 */
   'notice.friend': (
     this: T,
     event: FriendIncreaseEvent | FriendDecreaseEvent | FriendRecallEvent | FriendPokeEvent
@@ -291,6 +301,7 @@ export interface EventMap<T = any> {
       | GroupMuteEvent
       | GroupTransferEvent
       | GroupPokeEvent
+      | GroupSignEvent
   ) => void
   /** 所有notice事件 */
   notice: (

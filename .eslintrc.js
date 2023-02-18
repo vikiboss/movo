@@ -13,8 +13,10 @@ module.exports = {
   extends: ['viki-ts', 'plugin:prettier/recommended'],
   rules: {
     camelcase: 'off',
+    'no-var': 'off',
     'no-case-declarations': 'off',
     'no-useless-constructor': 'off',
+    'no-use-before-define': 'off',
 
     '@typescript-eslint/no-empty-function': 'off',
 

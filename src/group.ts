@@ -1,5 +1,3 @@
-/* eslint-disable no-var */
-/* eslint-disable no-use-before-define */
 import axios from 'axios'
 import { randomBytes } from 'node:crypto'
 
@@ -20,23 +18,6 @@ import type { ShareConfig, ShareContent } from './message/share'
 const fetchmap = new Map<string, Promise<Map<number, MemberInfo>>>()
 const weakmap = new WeakMap<GroupInfo, Group>()
 
-const GI_BUF = pb.encode({
-  1: 0,
-  2: 0,
-  5: 0,
-  6: 0,
-  15: '',
-  29: 0,
-  36: 0,
-  37: 0,
-  45: 0,
-  46: 0,
-  49: 0,
-  50: 0,
-  54: 0,
-  89: ''
-})
-
 /** 讨论组 */
 export class Discuss extends Contactable {
   static as(this: Client, gid: number) {
@@ -53,7 +34,7 @@ export class Discuss extends Contactable {
     lock(this, 'gid')
   }
 
-  /** 发送一条消息 */
+  /** 发送讨论组消息 */
   async sendMsg(content: Sendable): Promise<MessageRet> {
     const { rich, brief } = await this._preprocess(content)
     const body = pb.encode({
@@ -107,16 +88,17 @@ export class Group extends Discuss {
     return this._info
   }
 
+  /** 群名称 */
   get name() {
     return this.info?.group_name
   }
 
-  /** 我是否是群主 */
+  /** 是否是该群群主 */
   get is_owner() {
     return this.info?.owner_id === this.c.uin
   }
 
-  /** 我是否是管理 */
+  /** 是否是该群管理员 */
   get is_admin() {
     return this.is_owner || !!this.info?.admin_flag
   }
@@ -126,7 +108,7 @@ export class Group extends Discuss {
     return (this.info?.shutup_time_whole ?? 0) > timestamp()
   }
 
-  /** 我的禁言剩余时间 */
+  /** 当前账号禁言剩余时间，没有被禁言时为 0 */
   get mute_left() {
     const t = (this.info?.shutup_time_me ?? 0) - timestamp()
     return t > 0 ? t : 0
@@ -155,6 +137,24 @@ export class Group extends Discuss {
   /** 强制刷新资料 */
   async renew(): Promise<GroupInfo> {
     if (this._info) this._info.update_time = timestamp()
+
+    const GI_BUF = pb.encode({
+      1: 0,
+      2: 0,
+      5: 0,
+      6: 0,
+      15: '',
+      29: 0,
+      36: 0,
+      37: 0,
+      45: 0,
+      46: 0,
+      49: 0,
+      50: 0,
+      54: 0,
+      89: ''
+    })
+
     const body = pb.encode({
       1: this.c.apk.subid,
       2: {
@@ -374,6 +374,7 @@ export class Group extends Discuss {
     }
   }
 
+  /** 撤回一条群消息 */
   async recallMsg(param: number | string | GroupMessage, rand = 0, pktnum = 1) {
     if (param instanceof GroupMessage) var { seq, rand, pktnum } = param
     else if (typeof param === 'string') var { seq, rand, pktnum } = parseGroupMessageId(param)
@@ -596,6 +597,20 @@ export class Group extends Discuss {
     return pb.decode(payload)[4].toBuffer().length > 6
   }
 
+  /** 群打卡 */
+  async sign() {
+    const body = pb.encode({
+      2: {
+        1: String(this.c.uin),
+        2: String(this.group_id),
+        3: this.c.apk.ver
+      }
+    })
+    const payload = await this.c.sendOidb('OidbSvc.0xeb7_1', body)
+    const res = pb.decode(payload)
+    return !!(res[3] & 0xffffffff)
+  }
+
   /** 退群/解散 */
   async quit() {
     const buf = Buffer.allocUnsafe(8)
@@ -611,26 +626,32 @@ export class Group extends Discuss {
     return jce.decodeWrapper(payload)[1] === 0
   }
 
+  /** 设置管理员 */
   setAdmin(uid: number, yes = true) {
     return this.pickMember(uid).setAdmin(yes)
   }
 
+  /** 设置专属头衔 */
   setTitle(uid: number, title = '', duration = -1) {
     return this.pickMember(uid).setTitle(title, duration)
   }
 
+  /** 设置群名片 */
   setCard(uid: number, card = '') {
     return this.pickMember(uid).setCard(card)
   }
 
+  /** 移出群成员 */
   kickMember(uid: number, block = false, message?: string) {
     return this.pickMember(uid).kick(block, message)
   }
 
+  /** 禁言群成员 */
   muteMember(uid: number, duration = 600) {
     return this.pickMember(uid).mute(duration)
   }
 
+  /** 私聊发送戳一戳给群成员 */
   pokeMember(uid: number) {
     return this.pickMember(uid).poke()
   }
