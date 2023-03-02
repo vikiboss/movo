@@ -1,4 +1,3 @@
-/* eslint-disable n/handle-callback-err */
 import axios from 'axios'
 import { exec } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
@@ -146,7 +145,7 @@ export abstract class Contactable {
     const res1 = (await Promise.allSettled(tasks)) as PromiseRejectedResult[]
     for (let i = 0; i < res1.length; i++) {
       if (res1[i].status === 'rejected')
-        this.c.logger.warn(`图片 ${i + 1} 失败, reason: ` + res1[i].reason?.message)
+        this.c.logger.warn(`图片 ${i + 1} 上传失败, 原因: ` + res1[i].reason?.message)
     }
     let n = 0
     while (imgs.length > n) {
@@ -164,12 +163,12 @@ export abstract class Contactable {
       for (let i = 0; i < res2.length; i++) {
         if (res2[i].status === 'rejected') {
           res1[n + i] = res2[i]
-          this.c.logger.warn(`图片 ${n + i + 1} 上传失败, reason: ` + res2[i].reason?.message)
+          this.c.logger.warn(`图片 ${n + i + 1} 上传失败, 原因: ` + res2[i].reason?.message)
         }
       }
       n += 20
     }
-    this.c.logger.debug(`图片任务结束`)
+    this.c.logger.debug(`图片上传任务结束`)
     return res1
   }
 
@@ -234,7 +233,7 @@ export abstract class Contactable {
     await new Promise((resolve, reject) => {
       exec(
         `${this.c.config.ffmpeg_path || 'ffmpeg'} -y -i "${file}" -f image2 -frames:v 1 "${thumb}"`,
-        (error, stdout, stderr) => {
+        (_, stdout, stderr) => {
           this.c.logger.debug('ffmpeg output: ' + stdout + stderr)
           fs.stat(thumb, (err) => {
             if (err)
@@ -244,10 +243,10 @@ export abstract class Contactable {
         }
       )
     })
-    const [width, height, seconds] = (await new Promise<[number, number, number]>((resolve) => {
+    const [width, height, seconds] = await new Promise<[number, number, number]>((resolve) => {
       exec(
         `${this.c.config.ffprobe_path || 'ffprobe'} -i "${file}" -show_streams`,
-        (error, stdout, stderr) => {
+        (_, stdout, stderr) => {
           const lines = (stdout || stderr || '').split('\n')
           let width = 1280
           let height = 720
@@ -265,7 +264,7 @@ export abstract class Contactable {
           resolve([width, height, seconds])
         }
       )
-    })) as number[]
+    })
     const md5video = await md5Stream(fs.createReadStream(file))
     const md5thumb = await md5Stream(fs.createReadStream(thumb))
     const name = md5video.toString('hex') + '.mp4'
@@ -339,7 +338,7 @@ export abstract class Contactable {
 
   /** 上传一个语音以备发送(理论上传一次所有群和好友都能发) */
   async uploadPtt(elem: PttElem): Promise<PttElem> {
-    this.c.logger.debug('开始语音任务...')
+    this.c.logger.debug('开始语音上传任务...')
     if (typeof elem.file === 'string' && elem.file.startsWith('protobuf://')) return elem
     const buf = await getPttBuffer(elem.file, this.c.config.ffmpeg_path, elem.origin)
     const hash = md5(buf)
@@ -541,9 +540,9 @@ export abstract class Contactable {
       nodes.length
     }" flag="3" m_resid="${resid}" serviceID="35" m_fileSize="${
       compressed.length
-    }"><item layout="1"><title color="#000000"size="34">${title}</title>${preview}<hr></hr><summary color="#808080" size="26"> 查看 ${
+    }"><item layout="1"><title color="#000000" size="34">${title}</title>${preview}<hr></hr><summary color="#808080" size="26">查看${
       nodes.length
-    } 条转发消息 </summary></item><source name="聊天记录"></source></msg>`
+    }条转发消息</summary></item><source name="聊天记录"></source></msg>`
     return {
       type: 'xml',
       data: xml,
@@ -551,7 +550,7 @@ export abstract class Contactable {
     }
   }
 
-  /**  下载并解析合并转发  */
+  /** 下载并解析合并转发 */
   async getForwardMsg(resid: string, fileName = 'MultiMsg') {
     const ret = []
     const buf = await this._downloadMultiMsg(String(resid), 2)
@@ -702,21 +701,17 @@ async function getPttBuffer(
 function audioTrans(file: string, ffmpeg = 'ffmpeg'): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const tmpfile = path.join(TMP_DIR, uuid())
-    exec(
-      `${ffmpeg} -y -i "${file}" -ac 1 -ar 8000 -f amr "${tmpfile}"`,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      async () => {
-        try {
-          const amr = await fs.promises.readFile(tmpfile)
-          resolve(amr)
-        } catch {
-          const msg = '音频转码到 amr 失败，请确认你的 ffmpeg 可以处理此转换'
-          reject(new ApiRejection(ErrorCode.FFmpegPttTransError, msg))
-        } finally {
-          fs.unlink(tmpfile, NOOP)
-        }
+    exec(`${ffmpeg} -y -i "${file}" -ac 1 -ar 8000 -f amr "${tmpfile}"`, async () => {
+      try {
+        const amr = await fs.promises.readFile(tmpfile)
+        resolve(amr)
+      } catch {
+        const msg = '音频转码到 amr 失败，请确认你的 ffmpeg 可以处理此转换'
+        reject(new ApiRejection(ErrorCode.FFmpegPttTransError, msg))
+      } finally {
+        fs.unlink(tmpfile, NOOP)
       }
-    )
+    })
   })
 }
 
