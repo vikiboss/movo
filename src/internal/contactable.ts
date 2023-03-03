@@ -494,7 +494,7 @@ export abstract class Contactable {
           )}</title>`
         }
       }
-      if (!desc) preview = desc
+      if (desc) preview = desc
       nodes.push({
         1: {
           1: fake.user_id,
