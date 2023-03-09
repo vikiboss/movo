@@ -6,6 +6,7 @@ QQ Android protocol based on Node.js, modified from [oicq](https://github.com/ta
 
 - fix sent messages count bug.
 - fix device params (`subid` and etc.) to improve login success rate.
+- support `qidian` (企点) protocol（identifier is `Platform.qidian` or `6`）.
 - support big emotion (lottie emotion or super emotion).
 - support thumb up to strangers (no need to add friend any more).
 - support send `origin` audio file (may cause bug on pcqq).
