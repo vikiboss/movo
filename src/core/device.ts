@@ -7,20 +7,35 @@ export type Device = ReturnType<typeof generateFullDevice>
 
 const mobile = {
   id: 'com.tencent.mobileqq',
-  name: 'A8.9.30.10200',
-  version: '8.9.30.10200',
-  ver: '8.9.30',
+  name: 'A8.9.33.10335',
+  version: '8.9.33.10335',
+  ver: '8.9.33',
   sign: Buffer.from([166, 183, 69, 191, 36, 162, 194, 119, 82, 119, 22, 246, 243, 110, 182, 141]),
-  buildtime: 1671103213,
+  buildtime: 1673599898,
   appid: 16,
-  subid: 537150482,
+  subid: 537151682,
   bitmap: 150470524,
   sigmap: 16724722,
-  sdkver: '6.0.0.2530',
+  sdkver: '6.0.0.2534',
   display: 'Android'
 }
 
 export type Apk = typeof mobile
+
+const HD: Apk = {
+  id: 'com.tencent.minihd.qq',
+  name: 'A5.9.3.3468',
+  version: '5.9.3.3468',
+  ver: '5.9.3',
+  sign: Buffer.from([170, 57, 120, 244, 31, 217, 111, 249, 145, 74, 102, 158, 24, 100, 116, 199]),
+  buildtime: 1637427966,
+  appid: 16,
+  subid: 537151218,
+  bitmap: 150470524,
+  sigmap: 1970400,
+  sdkver: '6.0.0.2487',
+  display: 'aPad'
+}
 
 const watch: Apk = {
   id: 'com.tencent.qqlite',
@@ -35,21 +50,6 @@ const watch: Apk = {
   sigmap: 34869472,
   sdkver: '6.0.0.236',
   display: 'Watch'
-}
-
-const HD: Apk = {
-  id: 'com.tencent.minihd.qq',
-  name: 'A5.9.3.3468',
-  version: '5.9.3.3468',
-  ver: '5.9.3',
-  sign: Buffer.from([170, 57, 120, 244, 31, 217, 111, 249, 145, 74, 102, 158, 24, 100, 116, 199]),
-  buildtime: 1637427966,
-  appid: 16,
-  subid: 537150493,
-  bitmap: 150470524,
-  sigmap: 1970400,
-  sdkver: '6.0.0.2487',
-  display: 'aPad'
 }
 
 function generateImei(uin: number) {
@@ -83,7 +83,7 @@ export function generateShortDevice(uin: number) {
   const hash = md5(String(uin))
   const hex = hash.toString('hex')
   return {
-    '--begin--': '该设备由账号作为 seed 固定生成，账号不变则永远相同',
+    '--begin--': '该设备由 QQ 账号作为 seed 固定生成，账号不变则永远相同',
     product: 'MRS4S',
     device: 'HIM188MOE',
     board: 'MIRAI-YYDS',
@@ -148,8 +148,6 @@ export function generateFullDevice(d: ShortDevice | number) {
     guid: md5(Buffer.concat([Buffer.from(d.imei), Buffer.from(d.mac_address)]))
   }
 }
-
-// ----------
 
 /** 支持的登录设备平台 */
 export enum Platform {
