@@ -5,7 +5,7 @@ QQ Android protocol based on Node.js, modified from [oicq](https://github.com/ta
 **Changes in this fork**
 
 - fix sent messages count bug.
-- fix device params (`subid` and etc.) to improve login success rate.
+- upgrade device `subid` & `version` to improve login success rate.
 - support `qidian` (企点) protocol（identifier is `Platform.qidian` or `6`）.
 - support big emotion (lottie emotion or super emotion).
 - support thumb up to strangers (no need to add friend any more).
@@ -13,9 +13,9 @@ QQ Android protocol based on Node.js, modified from [oicq](https://github.com/ta
 - support `brief` param in image, record and video element.
 - support `title` & `desc` params to DIY forward msg.
 - support DIY **kick reason** when kicking member.
-- support `tenpay.com` to cookie domain.
 - support `pt4token` as `pt4` attribute of client.
-- support `group sign` api & `notice.group.sign` event.
+- support `group.sign()` api & `notice.group.sign` event.
+- add `tenpay.com` to cookie domains.
 - add cqcode util functions in `segment`.
 - update dependencies to newer version (such as `axios`).
 - generate type docs automatically via `type-doc`.
