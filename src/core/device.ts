@@ -52,6 +52,21 @@ const watch: Apk = {
   display: 'Watch'
 }
 
+const qidian: Apk = {
+  id: 'com.tencent.qidian',
+  name: 'A5.0.0',
+  version: '5.0.0',
+  ver: '5.0.0',
+  sign: Buffer.from([160, 30, 236, 171, 133, 233, 227, 186, 43, 15, 106, 21, 140, 133, 92, 41]),
+  buildtime: 1630062176,
+  appid: 16,
+  subid: 537036590,
+  bitmap: 184024956,
+  sigmap: 34869472,
+  sdkver: '6.0.0.2484',
+  display: 'qidian'
+}
+
 function generateImei(uin: number) {
   let imei = uin % 2 ? '86' : '35'
   const buf = Buffer.alloc(4)
@@ -155,7 +170,8 @@ export enum Platform {
   aPad = 2,
   Watch = 3,
   iMac = 4,
-  iPad = 5
+  iPad = 5,
+  qidian = 6
 }
 
 const apklist: { [platform in Platform]: Apk } = {
@@ -163,7 +179,8 @@ const apklist: { [platform in Platform]: Apk } = {
   [Platform.aPad]: HD,
   [Platform.Watch]: watch,
   [Platform.iMac]: { ...HD, subid: 537128930, display: 'iMac' },
-  [Platform.iPad]: { ...HD, subid: 537149258, display: 'iPad' }
+  [Platform.iPad]: { ...HD, subid: 537149258, display: 'iPad' },
+  [Platform.qidian]: qidian
 }
 
 export function getApkInfo(p: Platform): Apk {
