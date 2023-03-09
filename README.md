@@ -1,6 +1,6 @@
 # movo
 
-QQ Android protocal based on Node.js, modified from [oicq](https://github.com/takayama-lily/oicq), docs is [here](https://movo.viki.moe).
+QQ Android protocol based on Node.js, modified from [oicq](https://github.com/takayama-lily/oicq), docs is [here](https://movo.viki.moe).
 
 **Changes in this fork**
 
