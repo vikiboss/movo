@@ -2,7 +2,7 @@
   "name": "movo",
   "version": "1.1.12",
   "packageManager": "pnpm@7.29.0",
-  "update": "2023/3/3",
+  "update": "2023/3/9",
   "description": "QQ Android protocol based on Node.js, modified from oicq",
   "homepage": "https://movo.viki.moe",
   "main": "lib/index.js",
