@@ -82,9 +82,9 @@ async function onlineListener(
   // 恢复之前的状态
   this.status = this.status || OnlineStatus.Online
   this.setOnlineStatus(this.status).catch(NOOP)
-  // 存token
+  // 存 token
   tokenUpdatedListener.call(this, token)
-  this.logger.mark(`Welcome, ${this.nickname} ! 正在加载资源...`)
+  this.logger.mark(`Welcome, ${this.nickname}! 正在加载资源...`)
   await Promise.allSettled([
     this.reloadFriendList(),
     this.reloadGroupList(),
@@ -111,9 +111,6 @@ function tokenUpdatedListener(this: Client, token: Buffer) {
 function kickoffListener(this: Client, message: string) {
   this.logger.warn(message)
   this.terminate()
-  fs.unlink(path.join(this.dir, 'token'), () => {
-    this.em('system.offline.kickoff', { message })
-  })
 }
 
 function logQrcode(img: Buffer) {
@@ -150,15 +147,15 @@ function qrcodeListener(this: Client, image: Buffer) {
 }
 
 function sliderListener(this: Client, url: string) {
-  this.logger.mark('收到滑动验证码，请访问以下地址完成滑动，并从网络响应中取出ticket输入：' + url)
+  this.logger.mark('收到滑动验证码，请访问以下地址完成滑动，并从网络响应中取出 ticket 输入：' + url)
   this.em('system.login.slider', { url })
 }
 
 function verifyListener(this: Client, url: string, phone: string) {
   this.logger.mark(
-    '收到登录保护，只需验证一次便长期有效，可以访问URL验证或发短信验证。访问URL完成验证后调用login()可直接登录。发短信验证需要调用sendSmsCode()和submitSmsCode()方法。'
+    '收到登录保护，只需验证一次便长期有效，可以访问 URL 验证或发短信验证。访问 URL 完成验证后调用 login() 可直接登录。发短信验证需要调用 sendSmsCode() 和 submitSmsCode() 方法。'
   )
-  this.logger.mark('登录保护验证URL：' + url.replace('verify', 'qrcode'))
+  this.logger.mark('登录保护验证 URL：' + url.replace('verify', 'qrcode'))
   this.logger.mark('密保手机号：' + phone)
   return this.em('system.login.device', { url, phone })
 }
@@ -170,7 +167,7 @@ function verifyListener(this: Client, url: string, phone: string) {
 function loginErrorListener(this: Client, code: number, message: string) {
   // toke expired
   if (!code) {
-    this.logger.mark('登录token过期')
+    this.logger.mark('登录 token 过期')
     fs.unlink(path.join(this.dir, 'token'), (err) => {
       if (err) {
         this.logger.fatal(err.message)

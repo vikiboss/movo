@@ -256,9 +256,9 @@ export class BaseClient extends EventEmitter {
     this.sig.session = randomBytes(4)
     this.sig.randkey = randomBytes(16)
     this[ECDH] = new Ecdh()
-    this.sig.d2key = token.slice(0, 16)
-    this.sig.d2 = token.slice(16, token.length - 72)
-    this.sig.tgt = token.slice(token.length - 72)
+    this.sig.d2key = token.subarray(0, 16)
+    this.sig.d2 = token.subarray(16, token.length - 72)
+    this.sig.tgt = token.subarray(token.length - 72)
     this.sig.tgtgt = md5(this.sig.d2key)
     const t = tlv.getPacker(this)
     const body = new Writer()
@@ -394,7 +394,7 @@ export class BaseClient extends EventEmitter {
     const pkt = buildCode2dPacket.call(this, 0x31, 0x11100, body)
     this[FN_SEND](pkt)
       .then((payload) => {
-        payload = tea.decrypt(payload.slice(16, -1), this[ECDH].share_key)
+        payload = tea.decrypt(payload.subarray(16, -1), this[ECDH].share_key)
         const stream = Readable.from(payload, { objectMode: false })
         stream.read(54)
         const retcode = stream.read(1)[0]
@@ -503,7 +503,7 @@ export class BaseClient extends EventEmitter {
     const pkt = buildCode2dPacket.call(this, 0x12, 0x6200, body)
     try {
       let payload = await this[FN_SEND](pkt)
-      payload = tea.decrypt(payload.slice(16, -1), this[ECDH].share_key)
+      payload = tea.decrypt(payload.subarray(16, -1), this[ECDH].share_key)
       const stream = Readable.from(payload, { objectMode: false })
       stream.read(48)
       let len = stream.read(2).readUInt16BE()
@@ -630,18 +630,25 @@ function ssoListener(this: BaseClient, cmd: string, payload: Buffer, seq: number
       break
     case 'ConfigPushSvc.PushReq':
       {
-        if (payload[0] === 0) payload = payload.slice(4)
+        if (payload[0] === 0) payload = payload.subarray(4)
         const nested = jce.decodeWrapper(payload)
         if (nested[1] === 2 && nested[2]) {
           const buf = jce.decode(nested[2])[5][5]
           const decoded = pb.decode(buf)[1281]
-          this.sig.bigdata.sig_session = decoded[1].toBuffer()
-          this.sig.bigdata.session_key = decoded[2].toBuffer()
-          for (const v of decoded[3]) {
-            if (v[1] === 10) {
-              this.sig.bigdata.port = v[2][0][3]
-              this.sig.bigdata.ip = int32ip2str(v[2][0][2])
+          try {
+            this.sig.bigdata.sig_session = decoded[1].toBuffer()
+            this.sig.bigdata.session_key = decoded[2].toBuffer()
+            for (const v of decoded[3]) {
+              if (v[1] === 10) {
+                this.sig.bigdata.port = v[2][0][3]
+                this.sig.bigdata.ip = int32ip2str(v[2][0][2])
+              }
             }
+          } catch {
+            this.sig.bigdata.sig_session = Buffer.from('')
+            this.sig.bigdata.session_key = Buffer.from('')
+            this.sig.bigdata.port = 0
+            this.sig.bigdata.ip = ''
           }
         }
       }
@@ -678,15 +685,15 @@ async function parseSso(this: BaseClient, buf: Buffer) {
   }
   let offset = buf.readUInt32BE(12) + 12
   let len = buf.readUInt32BE(offset) // length of cmd
-  const cmd = String(buf.slice(offset + 4, offset + len))
+  const cmd = String(buf.subarray(offset + 4, offset + len))
   offset += len
   len = buf.readUInt32BE(offset) // length of session_id
   offset += len
   const flag = buf.readInt32BE(offset)
   let payload
-  if (flag === 0) payload = buf.slice(headlen + 4)
-  else if (flag === 1) payload = await unzip(buf.slice(headlen + 4))
-  else if (flag === 8) payload = buf.slice(headlen)
+  if (flag === 0) payload = buf.subarray(headlen + 4)
+  else if (flag === 1) payload = await unzip(buf.subarray(headlen + 4))
+  else if (flag === 8) payload = buf.subarray(headlen)
   else throw new Error('unknown compressed flag: ' + flag)
   return {
     seq,
@@ -700,7 +707,7 @@ async function packetListener(this: BaseClient, pkt: Buffer) {
   this[LOGIN_LOCK] = false
   try {
     const flag = pkt.readUInt8(4)
-    const encrypted = pkt.slice(pkt.readUInt32BE(6) + 6)
+    const encrypted = pkt.subarray(pkt.readUInt32BE(6) + 6)
     let decrypted
     switch (flag) {
       case 0:
@@ -844,7 +851,7 @@ async function refreshToken(this: BaseClient) {
   const pkt = buildLoginPacket.call(this, 'wtlogin.exchange_emp', body)
   try {
     let payload = await this[FN_SEND](pkt)
-    payload = tea.decrypt(payload.slice(16, payload.length - 1), this[ECDH].share_key)
+    payload = tea.decrypt(payload.subarray(16, payload.length - 1), this[ECDH].share_key)
     const stream = Readable.from(payload, { objectMode: false })
     stream.read(2)
     const type = stream.read(1).readUInt8()
@@ -995,14 +1002,14 @@ function decodeT119(this: BaseClient, t119: Buffer) {
     }
   }
   const token = Buffer.concat([this.sig.d2key, this.sig.d2, this.sig.tgt])
-  const age = t[0x11a].slice(2, 3).readUInt8()
-  const gender = t[0x11a].slice(3, 4).readUInt8()
-  const nickname = String(t[0x11a].slice(5))
+  const age = t[0x11a].subarray(2, 3).readUInt8()
+  const gender = t[0x11a].subarray(3, 4).readUInt8()
+  const nickname = String(t[0x11a].subarray(5))
   return { token, nickname, gender, age }
 }
 
 function decodeLoginResponse(this: BaseClient, payload: Buffer): any {
-  payload = tea.decrypt(payload.slice(16, payload.length - 1), this[ECDH].share_key)
+  payload = tea.decrypt(payload.subarray(16, payload.length - 1), this[ECDH].share_key)
   const r = Readable.from(payload, { objectMode: false })
   r.read(2)
   const type = r.read(1).readUInt8() as number
@@ -1050,7 +1057,7 @@ function decodeLoginResponse(this: BaseClient, payload: Buffer): any {
     if (t[0x174] && t[0x178]) {
       this.sig.t104 = t[0x104]
       this.sig.t174 = t[0x174]
-      phone = String(t[0x178]).substr(t[0x178].indexOf('\x0b') + 1, 11)
+      phone = String(t[0x178]).substring(t[0x178].indexOf('\x0b') + 1, 11)
     }
     return this.emit('internal.verify', t[0x204]?.toString() || '', phone)
   }

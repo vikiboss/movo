@@ -117,7 +117,7 @@ export function generateShortDevice(uin: number) {
       hex.substring(16, 4) +
       '-' +
       hex.substring(20),
-    proc_version: `Linux version 4.19.71-${hash.readUInt16BE(4)} (konata@takayama.github.com)`,
+    proc_version: `Linux version 4.19.71-${hash.readUInt16BE(4)}`,
     mac_address: `00:50:${hash[6].toString(16).toUpperCase()}:${hash[7]
       .toString(16)
       .toUpperCase()}:${hash[8].toString(16).toUpperCase()}:${hash[9].toString(16).toUpperCase()}`,
