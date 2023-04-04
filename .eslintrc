@@ -1,0 +1,10 @@
+{
+  "extends": "@vmoe",
+  "rules": {
+    "no-redeclare": "off",
+    "no-var": "off",
+    "no-case-declarations": "off",
+    "no-use-before-define": "off",
+    "no-useless-constructor": "off"
+  }
+}
