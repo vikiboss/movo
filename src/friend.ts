@@ -56,6 +56,18 @@ export class User extends Contactable {
     return `https://q1.qlogo.cn/g?b=qq&s=${size}&nk=` + this.uid
   }
 
+  /** 点赞，默认一次，支持陌生人点赞 */
+  async thumbUp(times = 1) {
+    if (times > 20) times = 20
+    const isFriend = this.c.fl.get(this.uid)
+    const buff = Buffer.from(isFriend ? '0C180001060131160131' : '0C180001060131160135', 'hex')
+    const subJce = jce.encodeNested([this.c.uin, 1, this.c.sig.seq + 1, 1, 0, buff])
+    const ReqFavorite = jce.encodeStruct([subJce, this.uid, 0, isFriend ? 1 : 5, Number(times)])
+    const body = jce.encodeWrapper({ ReqFavorite }, 'VisitorSvc', 'ReqFavorite', this.c.sig.seq + 1)
+    const payload = await this.c.sendUni('VisitorSvc.ReqFavorite', body)
+    return jce.decodeWrapper(payload)[0][3] === 0
+  }
+
   /** 获取加好友设置 */
   async getAddFriendSetting() {
     const FS = jce.encodeStruct([this.c.uin, this.uid, 3004, 0, null, 1])
@@ -402,18 +414,6 @@ export class Friend extends User {
       'MovGroupMemReq'
     )
     await this.c.sendUni('friendlist.MovGroupMemReq', body)
-  }
-
-  /** 点赞，默认一次，支持陌生人点赞 */
-  async thumbUp(times = 1) {
-    if (times > 20) times = 20
-    const isFriend = this.c.fl.get(this.uid)
-    const buff = Buffer.from(isFriend ? '0C180001060131160131' : '0C180001060131160135', 'hex')
-    const subJce = jce.encodeNested([this.c.uin, 1, this.c.sig.seq + 1, 1, 0, buff])
-    const ReqFavorite = jce.encodeStruct([subJce, this.uid, 0, 1, Number(times)])
-    const body = jce.encodeWrapper({ ReqFavorite }, 'VisitorSvc', 'ReqFavorite', this.c.sig.seq + 1)
-    const payload = await this.c.sendUni('VisitorSvc.ReqFavorite', body)
-    return jce.decodeWrapper(payload)[0][3] === 0
   }
 
   /** 戳一戳 */
